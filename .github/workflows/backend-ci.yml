@@ -1,0 +1,45 @@
+name: Build & Deploy Backend (.NET 8)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DB_SERVER: ${{ secrets.DB_SERVER }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build project
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish build
+        run: dotnet publish -c Release -o publish
+
+      - name: Deploy to SmarterASP (Backend)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.SMARTERASP_FTP_HOST }}
+          username: ${{ secrets.SMARTERASP_FTP_USER }}
+          password: ${{ secrets.SMARTERASP_FTP_PASS }}
+          local-dir: backend/publish/
+          server-dir: ${{ secrets.SMARTERASP_FTP_DIR }}/backend/

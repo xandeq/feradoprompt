@@ -1,0 +1,43 @@
+name: Build & Deploy Frontend (Next.js)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      NEXT_PUBLIC_API_BASE_URL: ${{ secrets.BACKEND_API_BASE_URL_PROD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Export static files
+        run: npm run export
+
+      - name: Deploy to SmarterASP (Frontend)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.SMARTERASP_FTP_HOST }}
+          username: ${{ secrets.SMARTERASP_FTP_USER }}
+          password: ${{ secrets.SMARTERASP_FTP_PASS }}
+          local-dir: frontend/out/
+          server-dir: ${{ secrets.SMARTERASP_FTP_DIR }}/frontend/

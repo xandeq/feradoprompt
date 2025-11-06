@@ -1,0 +1,30 @@
+# Node / JS
+node_modules/
+*.log
+*.lock
+dist/
+.next/
+out/
+
+# React Native / Expo
+ios/
+android/
+.expo/
+.expo-shared/
+*.keystore
+*.jks
+
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# Env
+.env
+.env.*.local
+**/.env.local
+
+# Others
+.DS_Store
+Thumbs.db
