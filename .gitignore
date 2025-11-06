@@ -1,10 +1,13 @@
-# Node / JS
+# Node / Next.js
 node_modules/
-*.log
-*.lock
-dist/
 .next/
+dist/
 out/
+*.log
+.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # React Native / Expo
 ios/
@@ -20,11 +23,24 @@ android/
 *.user
 *.suo
 
-# Env
+# Env & Secrets
 .env
-.env.*.local
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
 **/.env.local
+*.env
+.env.*
 
-# Others
+# OS & Editor junk
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
+
+# Build outputs
+build/
+coverage/
+tmp/
+temp/
