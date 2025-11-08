@@ -13,7 +13,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 var builder = WebApplication.CreateBuilder(args);
 
 // =============================
-// 1. Carregar variï¿½veis de ambiente (.env.local em desenvolvimento)
+// 1. Carregar variáveis de ambiente (.env.local em desenvolvimento)
 // =============================
 static void LoadEnvFile(string path)
 {
@@ -31,18 +31,22 @@ static void LoadEnvFile(string path)
     }
 }
 
-// Carregar .env.local apenas em desenvolvimento
+// ?? IMPORTANTE: Carregar .env.local ANTES de configurar os services
 if (builder.Environment.IsDevelopment())
 {
     var envPath = Path.Combine(builder.Environment.ContentRootPath, ".env.local");
     LoadEnvFile(envPath);
+    
+    // Log para debug (sem expor senhas)
+    Console.WriteLine($"[DEBUG] .env.local carregado de: {envPath}");
+    Console.WriteLine($"[DEBUG] DB_SERVER configurado: {!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DB_SERVER"))}");
 }
 
 // =============================
-// 2. Configurar ServiÃ§os
+// 2. Configurar Serviços
 // =============================
 
-// Adiciona todos os serviÃ§os da aplicaÃ§Ã£o via Extension
+// Adiciona todos os serviços da aplicação via Extension
 builder.Services.AddApplicationServices(builder.Configuration);
 
 // Configura webhooks do n8n
@@ -101,25 +105,42 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Fera do Prompt API",
         Version = "v1.0.0",
-        Description = "API para o sistema Fera do Prompt"
+        Description = "API para gerenciamento de prompts com integração n8n",
+        Contact = new()
+        {
+            Name = "Fera do Prompt Team",
+            Email = "contato@feradoprompt.com"
+        }
     });
+
+    // Incluir comentários XML
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath);
+    }
+
+    // Ordenar actions por rota
+    options.OrderActionsBy(apiDesc => apiDesc.RelativePath);
 });
 
 // =============================
-// 4. Configurar Pipeline
+// 3. Configurar Pipeline
 // =============================
 var app = builder.Build();
 
-// Swagger apenas em desenvolvimento
-if (app.Environment.IsDevelopment())
+// Swagger SEMPRE habilitado (comentar para desabilitar em produção)
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Fera do Prompt API v1");
-        options.RoutePrefix = string.Empty; // Swagger na raiz
-    });
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Fera do Prompt API v1");
+    options.RoutePrefix = "swagger"; // Acessível em /swagger
+    options.DocumentTitle = "Fera do Prompt API - Documentação";
+    options.DisplayRequestDuration();
+    options.EnableTryItOutByDefault();
+    options.EnableDeepLinking();
+});
 
 app.UseHttpsRedirection();
 
@@ -133,8 +154,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Log de inicializaÃ§Ã£o (sem expor secrets)
-app.Logger.LogInformation("ðŸš€ Fera do Prompt API iniciada");
+// Log de inicialização (sem expor secrets)
+app.Logger.LogInformation("?? Fera do Prompt API iniciada");
 app.Logger.LogInformation("Ambiente: {Environment}", app.Environment.EnvironmentName);
 
 app.Run();
