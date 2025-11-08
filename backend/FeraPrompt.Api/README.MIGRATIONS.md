@@ -1,5 +1,34 @@
 # ??? Entity Framework Core - Guia de Migrations
 
+## ? **MIGRATIONS APLICADAS COM SUCESSO!**
+
+### ?? Migration Inicial
+- **Nome:** `InitialCreate`
+- **Data/Hora:** `20251108123813` (08/11/2025 09:38)
+- **Status:** ? Aplicada ao banco de dados
+- **Tabelas Criadas:** `Prompts`, `PromptHistories`, `Users`, `__EFMigrationsHistory`
+
+---
+
+## ?? **Solução Implementada para Design-Time**
+
+### Problema Identificado
+```
+? Unable to create a 'DbContext' of type 'RuntimeType'
+? Variáveis de ambiente de banco de dados não configuradas
+```
+
+### Solução Aplicada
+Criado `ApplicationDbContextFactory.cs` que implementa `IDesignTimeDbContextFactory<ApplicationDbContext>`.
+
+Este factory permite que o EF Tools crie o DbContext em tempo de design (para migrations) com as seguintes prioridades:
+
+1. **Variáveis de ambiente** via `.env.local`
+2. **appsettings.Development.json** ? `ConnectionStrings:Default`
+3. **appsettings.Development.json** ? `Database` (Server, Name, User, Password)
+
+---
+
 ## ?? Estrutura Criada
 
 ### Entidades (Models)
@@ -16,84 +45,144 @@
 - `PromptHistory.PromptId`, `PromptHistory.ExecutedAt` - Performance em joins
 - `User.Username` (UNIQUE), `User.Email` (UNIQUE) - Integridade
 
+---
+
 ## ?? Comandos de Migration
 
-### 1. Criar a Migration Inicial
+### 1. Criar uma Nova Migration
 ```bash
 cd C:\Users\acq20\Desktop\Projetos\feradoprompt\backend\FeraPrompt.Api
-dotnet ef migrations add InitialCreate
+dotnet ef migrations add NomeDaMigration
 ```
 
-### 2. Aplicar Migration ao Banco
+### 2. Aplicar Migrations ao Banco
 ```bash
 dotnet ef database update
 ```
 
-### 3. Remover Última Migration (se necessário)
+### 3. Aplicar Migration Específica
+```bash
+dotnet ef database update NomeDaMigration
+```
+
+### 4. Remover Última Migration (NÃO aplicada)
 ```bash
 dotnet ef migrations remove
 ```
 
-### 4. Ver Status das Migrations
+### 5. Reverter para Migration Anterior
+```bash
+dotnet ef database update NomeDaMigrationAnterior
+```
+
+### 6. Ver Status das Migrations
 ```bash
 dotnet ef migrations list
 ```
 
-### 5. Gerar Script SQL (sem aplicar)
+### 7. Gerar Script SQL (sem aplicar)
 ```bash
 dotnet ef migrations script > migration.sql
 ```
 
+### 8. Gerar Script de Migration Específica
+```bash
+dotnet ef migrations script FromMigration ToMigration
+```
+
+---
+
 ## ?? Troubleshooting
 
-### Erro: "Unable to create an object of type 'ApplicationDbContext'"
-**Solução:** Certifique-se que as variáveis de ambiente estão configuradas ou que `appsettings.Development.json` tem a connection string.
+### ? Erro RESOLVIDO: "Unable to create DbContext"
+**Problema:** EF Tools não conseguia criar DbContext em tempo de design.
+
+**Solução:** Criado `ApplicationDbContextFactory.cs` com `IDesignTimeDbContextFactory`.
+
+**Como funciona:**
+1. Carrega `.env.local` se existir
+2. Carrega `appsettings.Development.json`
+3. Busca connection string em ordem de prioridade
+4. Cria DbContext com connection string válida
 
 ### Erro: "Login failed for user"
-**Solução:** Verifique se as credenciais no `.env.local` ou GitHub Secrets estão corretas.
+**Solução:** Verifique se as credenciais no `.env.local` ou `appsettings.Development.json` estão corretas.
 
 ### Erro: "Cannot insert duplicate key"
 **Solução:** Já existe um registro com Username ou Email duplicado.
 
-## ?? Tabelas Criadas
-
-Após executar `dotnet ef database update`, serão criadas:
-
-```
-db_aaf0a8_feradoprompt
-??? Prompts
-?   ??? Id (PK, INT, IDENTITY)
-?   ??? Title (NVARCHAR(200), NOT NULL)
-?   ??? Body (NVARCHAR(MAX), NOT NULL)
-?   ??? Model (NVARCHAR(50), NOT NULL)
-?   ??? CreatedAt (DATETIME2, DEFAULT GETUTCDATE())
-?   ??? CreatedBy (NVARCHAR(100), NULL)
-?
-??? PromptHistories
-?   ??? Id (PK, INT, IDENTITY)
-?   ??? PromptId (FK ? Prompts.Id, NOT NULL)
-?   ??? Input (NVARCHAR(MAX), NOT NULL)
-?   ??? Output (NVARCHAR(MAX), NOT NULL)
-?   ??? ModelUsed (NVARCHAR(50), NOT NULL)
-?   ??? ExecutedAt (DATETIME2, DEFAULT GETUTCDATE())
-?
-??? Users
-?   ??? Id (PK, INT, IDENTITY)
-?   ??? Username (NVARCHAR(100), NOT NULL, UNIQUE)
-?   ??? Email (NVARCHAR(255), NOT NULL, UNIQUE)
-?   ??? CreatedAt (DATETIME2, DEFAULT GETUTCDATE())
-?
-??? __EFMigrationsHistory (tabela de controle do EF)
+### Erro: "The Entity Framework tools version is older"
+**Nota:** Aviso informativo. Considere atualizar:
+```bash
+dotnet tool update --global dotnet-ef
 ```
 
-## ?? Próximos Passos
+---
 
-1. Executar a migration inicial
-2. Criar Repositories para cada entidade
-3. Criar Services com regras de negócio
-4. Criar Controllers (endpoints REST)
-5. Adicionar autenticação JWT
-6. Implementar validações e DTOs
+## ?? Tabelas Criadas no Banco
+
+Após executar `dotnet ef database update`:
+
+```
+db_aaf0a8_feradoprompt (SQL Server)
+?
+??? ?? Tables
+?   ??? Prompts
+?   ?   ??? Id (PK, INT, IDENTITY)
+?   ?   ??? Title (NVARCHAR(200), NOT NULL)
+?   ?   ??? Body (NVARCHAR(MAX), NOT NULL)
+?   ?   ??? Model (NVARCHAR(50), NOT NULL)
+?   ?   ??? CreatedAt (DATETIME2, DEFAULT GETUTCDATE())
+?   ?   ??? CreatedBy (NVARCHAR(100), NULL)
+?   ?
+?   ??? PromptHistories
+?   ?   ??? Id (PK, INT, IDENTITY)
+?   ?   ??? PromptId (FK ? Prompts.Id, NOT NULL)
+?   ?   ??? Input (NVARCHAR(MAX), NOT NULL)
+?   ?   ??? Output (NVARCHAR(MAX), NOT NULL)
+?   ?   ??? ModelUsed (NVARCHAR(50), NOT NULL)
+?   ?   ??? ExecutedAt (DATETIME2, DEFAULT GETUTCDATE())
+?   ?
+?   ??? Users
+?   ?   ??? Id (PK, INT, IDENTITY)
+?   ?   ??? Username (NVARCHAR(100), NOT NULL, UNIQUE)
+?   ?   ??? Email (NVARCHAR(255), NOT NULL, UNIQUE)
+?   ?   ??? CreatedAt (DATETIME2, DEFAULT GETUTCDATE())
+?   ?
+?   ??? __EFMigrationsHistory (controle do EF)
+?       ??? MigrationId (PK, NVARCHAR(150))
+?       ??? ProductVersion (NVARCHAR(32))
+?
+??? ?? Indexes
+    ??? IX_Prompts_CreatedAt
+    ??? IX_Prompts_Model
+    ??? IX_PromptHistories_PromptId
+    ??? IX_PromptHistories_ExecutedAt
+    ??? IX_Users_Username (UNIQUE)
+    ??? IX_Users_Email (UNIQUE)
+```
+
+---
+
+## ?? Verificar Migrations Aplicadas
+
+### No Banco de Dados (SQL Server)
+```sql
+SELECT * FROM __EFMigrationsHistory
+ORDER BY MigrationId DESC;
+```
+
+**Resultado esperado:**
+| MigrationId | ProductVersion |
+|-------------|----------------|
+| 20251108123813_InitialCreate | 9.0.10 |
+
+### Via CLI
+```bash
+dotnet ef migrations list
+```
+
+---
 
 ## ?? Exemplo de Uso (Repository Pattern)
 
@@ -120,6 +209,8 @@ public class PromptService
 }
 ```
 
+---
+
 ## ?? Importante
 
 - ? **Sempre use async/await** - Nunca `.Result` ou `.Wait()`
@@ -127,3 +218,33 @@ public class PromptService
 - ? **Transactions quando necessário** - `using var transaction = await _context.Database.BeginTransactionAsync()`
 - ? **Validações antes de salvar** - Use FluentValidation ou Data Annotations
 - ? **DTOs para API** - Nunca exponha entidades diretamente nos endpoints
+- ? **Backup antes de migrations em produção**
+
+---
+
+## ?? Status Atual
+
+```
+? ApplicationDbContext criado
+? Entidades (Prompt, PromptHistory, User) criadas
+? Relacionamentos configurados
+? Índices criados
+? ApplicationDbContextFactory implementado
+? Migration InitialCreate criada (20251108123813)
+? Migration aplicada ao banco de dados
+? Tabelas criadas com sucesso
+? Build bem-sucedido
+? Pronto para desenvolvimento!
+```
+
+---
+
+## ?? Próximas Etapas
+
+1. ? ~~Criar Migration Inicial~~ - **CONCLUÍDO**
+2. ? ~~Aplicar ao Banco de Dados~~ - **CONCLUÍDO**
+3. ?? Testar endpoints da API
+4. ?? Criar seeds de dados (opcional)
+5. ?? Implementar autenticação JWT
+6. ?? Adicionar validações e DTOs
+7. ?? Configurar CI/CD para migrations automáticas

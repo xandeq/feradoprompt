@@ -3,6 +3,12 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using FeraPrompt.Api.Data;
 using FeraPrompt.Api.Extensions;
+using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
