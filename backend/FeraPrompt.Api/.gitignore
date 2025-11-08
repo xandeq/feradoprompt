@@ -90,13 +90,16 @@ ScaffoldingReadMe.txt
 *.nuget.props
 *.nuget.targets
 
-# Environment files
+# Environment files (IMPORTANT: .example files should be committed!)
 .env
 .env.local
 .env.*.local
 .env.development.local
 .env.test.local
 .env.production.local
+# Explicitly include .example files (templates that should be committed)
+!.env*.example
+!.env.*.example
 
 # Node modules (frontend/mobile)
 node_modules/
