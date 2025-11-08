@@ -11,12 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: backend/FeraPrompt.Api
     env:
       DB_SERVER: ${{ secrets.DB_SERVER }}
       DB_NAME: ${{ secrets.DB_NAME }}
       DB_USER: ${{ secrets.DB_USER }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      WEBHOOK_PRODUCTION_URL: ${{ secrets.WEBHOOK_PRODUCTION_URL }}
+      WEBHOOK_TEST_URL: ${{ secrets.WEBHOOK_TEST_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,5 +43,5 @@ jobs:
           server: ${{ secrets.SMARTERASP_FTP_HOST }}
           username: ${{ secrets.SMARTERASP_FTP_USER }}
           password: ${{ secrets.SMARTERASP_FTP_PASS }}
-          local-dir: backend/publish/
+          local-dir: backend/FeraPrompt.Api/publish/
           server-dir: ${{ secrets.SMARTERASP_FTP_DIR }}/backend/
