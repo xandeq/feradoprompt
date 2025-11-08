@@ -1,0 +1,97 @@
+### Fera do Prompt API - Testes HTTP
+### Certifique-se que a API está rodando em http://localhost:5000
+
+@baseUrl = http://localhost:5000/api
+@contentType = application/json
+
+### 1. Health Check (GET /)
+GET {{baseUrl}}/../
+Accept: application/json
+
+###
+
+### 2. Listar todos os Prompts
+GET {{baseUrl}}/prompts
+Accept: {{contentType}}
+
+###
+
+### 3. Buscar Prompt por ID
+GET {{baseUrl}}/prompts/1
+Accept: {{contentType}}
+
+###
+
+### 4. Criar um novo Prompt
+POST {{baseUrl}}/prompts
+Content-Type: {{contentType}}
+
+{
+  "title": "Prompt de Tradução",
+  "body": "Traduza o seguinte texto para {language}: {text}",
+  "model": "gpt-4",
+  "createdBy": "admin"
+}
+
+###
+
+### 5. Criar Prompt GPT-5
+POST {{baseUrl}}/prompts
+Content-Type: {{contentType}}
+
+{
+  "title": "Gerador de Código",
+  "body": "Crie uma função {language} que {description}. Use boas práticas e adicione comentários.",
+  "model": "gpt-5",
+  "createdBy": "dev-team"
+}
+
+###
+
+### 6. Criar Prompt Claude Sonnet
+POST {{baseUrl}}/prompts
+Content-Type: {{contentType}}
+
+{
+  "title": "Análise de Sentimento",
+  "body": "Analise o sentimento do seguinte texto e retorne: positivo, negativo ou neutro. Texto: {text}",
+  "model": "claude-sonnet",
+  "createdBy": "data-science"
+}
+
+###
+
+### 7. Atualizar Prompt
+PUT {{baseUrl}}/prompts/1
+Content-Type: {{contentType}}
+
+{
+  "title": "Prompt de Tradução (Atualizado)",
+  "body": "Traduza o seguinte texto de forma natural para {language}: {text}. Mantenha o tom e estilo.",
+  "model": "gpt-4"
+}
+
+###
+
+### 8. Deletar Prompt
+DELETE {{baseUrl}}/prompts/1
+
+###
+
+### 9. Buscar Prompt inexistente (404)
+GET {{baseUrl}}/prompts/999
+Accept: {{contentType}}
+
+###
+
+### 10. Criar Prompt com dados inválidos (400)
+POST {{baseUrl}}/prompts
+Content-Type: {{contentType}}
+
+{
+  "title": "",
+  "body": "",
+  "model": ""
+}
+
+###

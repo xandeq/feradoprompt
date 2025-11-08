@@ -1,0 +1,6 @@
+@FeraPrompt.Api_HostAddress = http://localhost:5242
+
+GET {{FeraPrompt.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

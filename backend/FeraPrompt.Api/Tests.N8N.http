@@ -1,0 +1,117 @@
+### Fera do Prompt API - Testes de Integração com n8n
+@baseUrl = http://localhost:5000/api
+@contentType = application/json
+
+###############################################
+# 1. Criar um Prompt
+###############################################
+POST {{baseUrl}}/prompts
+Content-Type: {{contentType}}
+
+{
+  "title": "Corretor de Texto",
+  "body": "Você é um corretor ortográfico especializado. Corrija o seguinte texto mantendo o tom original: {input}",
+  "model": "gpt-4o"
+}
+
+###############################################
+# 2. Listar Todos os Prompts
+###############################################
+GET {{baseUrl}}/prompts
+Accept: {{contentType}}
+
+###############################################
+# 3. Buscar Prompt por ID (com histórico)
+###############################################
+GET {{baseUrl}}/prompts/1
+Accept: {{contentType}}
+
+###############################################
+# 4. Executar Prompt via n8n
+###############################################
+POST {{baseUrl}}/prompts/execute
+Content-Type: {{contentType}}
+
+{
+  "promptId": 1,
+  "input": "Olá, tudo bem? Espero que voce esteja bem!",
+  "model": "gpt-4o"
+}
+
+###############################################
+# 5. Exemplo: Prompt de Tradução
+###############################################
+# Primeiro criar o prompt
+POST {{baseUrl}}/prompts
+Content-Type: {{contentType}}
+
+{
+  "title": "Tradutor EN -> PT",
+  "body": "Traduza o seguinte texto do inglês para português brasileiro: {input}",
+  "model": "gpt-4o"
+}
+
+# Depois executar
+POST {{baseUrl}}/prompts/execute
+Content-Type: {{contentType}}
+
+{
+  "promptId": 2,
+  "input": "Hello, how are you? I hope you are doing well!",
+  "model": "gpt-4o"
+}
+
+###############################################
+# 6. Exemplo: Prompt de Resumo
+###############################################
+POST {{baseUrl}}/prompts
+Content-Type: {{contentType}}
+
+{
+  "title": "Resumidor de Texto",
+  "body": "Resuma o seguinte texto em no máximo 3 parágrafos: {input}",
+  "model": "gpt-4o"
+}
+
+# Executar
+POST {{baseUrl}}/prompts/execute
+Content-Type: {{contentType}}
+
+{
+  "promptId": 3,
+  "input": "A inteligência artificial tem revolucionado diversos setores da sociedade. No campo da medicina, algoritmos de IA ajudam no diagnóstico precoce de doenças. Na educação, sistemas inteligentes personalizam o aprendizado. No entretenimento, a IA cria recomendações personalizadas. Empresas utilizam IA para otimizar processos e reduzir custos. A tecnologia continua evoluindo rapidamente, trazendo novas possibilidades e desafios éticos.",
+  "model": "gpt-4o"
+}
+
+###############################################
+# 7. Deletar Prompt
+###############################################
+DELETE {{baseUrl}}/prompts/1
+
+###############################################
+# 8. Teste de Validação - Sem título
+###############################################
+POST {{baseUrl}}/prompts
+Content-Type: {{contentType}}
+
+{
+  "body": "teste",
+  "model": "gpt-4o"
+}
+
+###############################################
+# 9. Teste de Validação - PromptId inválido
+###############################################
+POST {{baseUrl}}/prompts/execute
+Content-Type: {{contentType}}
+
+{
+  "promptId": 999999,
+  "input": "teste",
+  "model": "gpt-4o"
+}
+
+###############################################
+# 10. Healthcheck (se existir)
+###############################################
+GET {{baseUrl}}/health
