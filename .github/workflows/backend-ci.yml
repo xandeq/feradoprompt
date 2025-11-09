@@ -48,9 +48,9 @@ jobs:
       - name: Deploy to SmarterASP (Backend)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.SMARTERASP_FTP_HOST }}
-          username: ${{ secrets.SMARTERASP_FTP_USER }}
-          password: ${{ secrets.SMARTERASP_FTP_PASS }}
+          server: ${{ secrets.BACKEND_FTP_HOST }}
+          username: ${{ secrets.BACKEND_FTP_USER }}
+          password: ${{ secrets.BACKEND_FTP_PASS }}
           local-dir: ./backend/FeraPrompt.Api/publish/
-          server-dir: ${{ secrets.SMARTERASP_FTP_DIR }}/backend/
+          server-dir: ${{ secrets.BACKEND_FTP_PATH }}/backend/
           dangerous-clean-slate: false
