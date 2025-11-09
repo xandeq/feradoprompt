@@ -35,6 +35,19 @@ jobs:
           ls -la out/
           echo "Build completed successfully!"
 
+      - name: Clean old /frontend folder via FTP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lftp
+          lftp -c "
+            set ssl:verify-certificate no;
+            open -u ${{ secrets.SMARTERASP_FTP_USER }},${{ secrets.SMARTERASP_FTP_PASS }} ${{ secrets.SMARTERASP_FTP_HOST }};
+            cd /feradoprompt;
+            rm -rf frontend;
+            bye
+          "
+          echo "Old /frontend folder removed successfully"
+
       - name: Deploy to SmarterASP (Frontend)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
