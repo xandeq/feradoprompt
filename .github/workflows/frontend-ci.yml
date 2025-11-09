@@ -36,7 +36,7 @@ jobs:
           echo "Checking build output..."
           ls -la out/
           echo "Build completed successfully!"
-          
+
       - name: Debug - Check directory structure
         run: |
           echo "=== Current directory ==="
@@ -60,6 +60,6 @@ jobs:
           server: ${{ secrets.SMARTERASP_FTP_HOST }}
           username: ${{ secrets.SMARTERASP_FTP_USER }}
           password: ${{ secrets.SMARTERASP_FTP_PASS }}
-          local-dir: frontend/out/
+          local-dir: ./frontend/out/
           server-dir: /feradoprompt/
-          dangerous-clean-slate: false
+          log-level: verbose
