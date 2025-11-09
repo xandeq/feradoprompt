@@ -58,6 +58,6 @@
             server: ${{ secrets.SMARTERASP_FTP_HOST }}
             username: ${{ secrets.SMARTERASP_FTP_USER }}
             password: ${{ secrets.SMARTERASP_FTP_PASS }}
-            local-dir: out/
+            local-dir: ./out/
             server-dir: /feradoprompt/
             log-level: verbose
