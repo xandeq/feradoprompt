@@ -38,6 +38,13 @@ jobs:
       - name: Publish build
         run: dotnet publish -c Release -o publish
 
+      - name: Verify FTP secrets
+        run: |
+          echo "FTP Host configured: ${{ secrets.SMARTERASP_FTP_HOST != '' }}"
+          echo "FTP User configured: ${{ secrets.SMARTERASP_FTP_USER != '' }}"
+          echo "FTP Pass configured: ${{ secrets.SMARTERASP_FTP_PASS != '' }}"
+          echo "FTP Dir configured: ${{ secrets.SMARTERASP_FTP_DIR != '' }}"
+
       - name: Deploy to SmarterASP (Backend)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
