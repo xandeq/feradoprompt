@@ -1,10 +1,10 @@
-  name: Build & Deploy Frontend (Next.js)
+name: Build & Deploy Frontend (Next.js)
 
-  on:
-    push:
-      branches: [ main ]
-      paths:
-        - 'frontend/**'
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
 
 jobs:
   build:
