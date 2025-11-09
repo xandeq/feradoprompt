@@ -23,8 +23,8 @@ Este documento lista TODOS os secrets necessários para os workflows de CI/CD fu
 BACKEND_API_BASE_URL_PROD
 ```
 
-**Descrição**: URL base da API backend em produção  
-**Exemplo**: `https://api.feradoprompt.com` ou `https://feradoprompt.com/api`  
+**Descrição**: URL base da API backend em produção
+**Exemplo**: `https://api.feradoprompt.com` ou `https://feradoprompt.com/api`
 **Usado em**: `frontend-ci.yml` → variável de ambiente `NEXT_PUBLIC_API_BASE_URL`
 
 ---
@@ -37,7 +37,7 @@ BACKEND_API_BASE_URL_PROD
 
 ### Secret: `BACKEND_API_BASE_URL_PROD`
 
-**Name**: `BACKEND_API_BASE_URL_PROD`  
+**Name**: `BACKEND_API_BASE_URL_PROD`
 **Value**: URL da sua API em produção
 
 **Opções**:
