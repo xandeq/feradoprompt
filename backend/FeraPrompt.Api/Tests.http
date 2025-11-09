@@ -95,3 +95,39 @@ Content-Type: {{contentType}}
 }
 
 ###
+
+### 11. Executar Prompt (Integração n8n - prompt-cowboy)
+POST {{baseUrl}}/prompts/execute
+Content-Type: {{contentType}}
+
+{
+  "promptId": 1,
+  "input": "Olá, mundo!",
+  "model": "gpt-4"
+}
+
+###
+
+### 12. Executar Prompt com Claude
+POST {{baseUrl}}/prompts/execute
+Content-Type: {{contentType}}
+
+{
+  "promptId": 1,
+  "input": "Este texto é muito positivo e inspirador!",
+  "model": "claude-sonnet"
+}
+
+###
+
+### 13. Executar Prompt inexistente (404)
+POST {{baseUrl}}/prompts/execute
+Content-Type: {{contentType}}
+
+{
+  "promptId": 999,
+  "input": "Teste",
+  "model": "gpt-4"
+}
+
+###

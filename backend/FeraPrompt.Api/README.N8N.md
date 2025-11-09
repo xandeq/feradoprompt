@@ -1,186 +1,415 @@
-# Integra√ß√£o com n8n - Fera do Prompt API
+# ?? IntegraÁ„o n8n - Fera do Prompt API
 
-## Vis√£o Geral
-O backend da API Fera do Prompt est√° integrado com o n8n para processamento de prompts via webhooks.
+## ?? Vis„o Geral
 
-## Arquitetura
+A API Fera do Prompt est· integrada com o **n8n** (plataforma de automaÁ„o de workflows) atravÈs de webhooks para processar prompts em modelos de IA (GPT-4, GPT-5, Claude, etc).
 
-### Fluxo de Execu√ß√£o
-1. **Cliente** ‚Üí Envia requisi√ß√£o POST para `/api/prompts/execute`
-2. **Controller** ‚Üí Valida dados e chama `PromptService.ExecutePromptAsync()`
-3. **Service** ‚Üí
-   - Busca o prompt no banco de dados
-   - Determina qual webhook usar (test/prod)
-   - Envia payload para n8n
-   - Recebe resposta com output processado
-   - Salva hist√≥rico no banco
-4. **Response** ‚Üí Retorna `PromptResponseViewModel` com output
+---
 
-## ViewModels Criados
+## ?? URLs do Webhook
 
-### PromptCreateViewModel
-```csharp
-{
-  "title": "string",     // max 200 caracteres
-  "body": "string",      // max 5000 caracteres (template do prompt)
-  "model": "string"      // max 50 caracteres (padr√£o: "gpt-4o")
-}
+### **ProduÁ„o (prompt-cowboy)**
+```
+https://n8n-n8tqhp.easypanel.host/webhook/prompt-cowboy
 ```
 
-### PromptRunViewModel
-```csharp
-{
-  "promptId": int,       // ID do prompt a ser executado
-  "input": "string",     // max 2000 caracteres (input do usu√°rio)
-  "model": "string"      // max 50 caracteres (padr√£o: "gpt-4o")
-}
+### **Teste (prompt-cowboy)**
+```
+https://n8n-n8tqhp.easypanel.host/webhook-test/prompt-cowboy
 ```
 
-### PromptResponseViewModel
-```csharp
-{
-  "promptId": int,
-  "input": "string",
-  "output": "string",    // Resposta processada do n8n
-  "modelUsed": "string",
-  "executedAt": "datetime"
-}
+---
+
+## ?? Fluxo de ExecuÁ„o
+
+```
+1. Frontend/Cliente
+   ? POST /api/prompts/execute
+2. PromptsController.Execute()
+   ?
+3. PromptService.ExecutePromptAsync()
+   ? Busca Prompt no DB
+   ? Determina ambiente (Dev/Prod)
+   ? Monta payload
+   ? POST para n8n webhook
+4. n8n Workflow
+   ? Processa com IA (GPT/Claude)
+   ? Retorna output
+5. PromptService
+   ? Salva no PromptHistory
+   ? Retorna PromptResponseViewModel
+6. Cliente recebe resposta
 ```
 
-## Configura√ß√£o de Webhooks
+---
 
-### Vari√°veis de Ambiente
-No arquivo `.env.local` do backend:
-
-```bash
-WEBHOOK_PRODUCTION_URL=https://n8n-n8n.h8tqhp.easypanel.host/webhook/11842b76-07b4-4799-a870-ec4f31f47503
-WEBHOOK_TEST_URL=https://n8n-n8n.h8tqhp.easypanel.host/webhook-test/11842b76-07b4-4799-a870-ec4f31f47503
-```
-
-### Sele√ß√£o de Webhook
-O sistema escolhe automaticamente qual webhook usar baseado no ambiente:
-
-- **Development**: usa `WEBHOOK_TEST_URL`
-- **Production/Staging**: usa `WEBHOOK_PRODUCTION_URL`
-
-## Payload Enviado ao n8n
+## ?? Payload Enviado ao n8n
 
 ```json
 {
-  "promptId": 123,
-  "model": "gpt-4o",
-  "input": "entrada do usu√°rio",
-  "promptBody": "template do prompt salvo no banco"
+  "promptId": 1,
+  "model": "gpt-4",
+  "input": "Ol·, mundo!",
+  "promptBody": "Traduza para {language}: {text}"
 }
 ```
 
-## Resposta Esperada do n8n
+### **Campos:**
+- **promptId** (int): ID do prompt no banco de dados
+- **model** (string): Modelo de IA a usar (gpt-4, gpt-5, claude-sonnet)
+- **input** (string): Texto de entrada do usu·rio
+- **promptBody** (string): Template do prompt com placeholders
+
+---
+
+## ?? Resposta Esperada do n8n
 
 ```json
 {
-  "output": "texto processado pela IA"
+  "output": "Hello, world!"
 }
 ```
 
-## Service Layer
+### **Campos:**
+- **output** (string): Texto processado pela IA
 
-### IPromptService
-Interface com os seguintes m√©todos:
-- `CreatePromptAsync(PromptCreateViewModel)` - Cria novo prompt
-- `ExecutePromptAsync(PromptRunViewModel)` - Executa prompt via n8n
-- `GetAllPromptsAsync()` - Lista todos os prompts
-- `GetByIdAsync(int)` - Busca prompt espec√≠fico com hist√≥rico
-- `DeletePromptAsync(int)` - Remove prompt
+---
 
-### PromptService
-Implementa√ß√£o que:
-- ‚úÖ Usa `IHttpClientFactory` para chamadas HTTP
-- ‚úÖ Timeout de 120 segundos para n8n
-- ‚úÖ Logging estruturado (sem expor secrets)
-- ‚úÖ Tratamento de erros robusto
-- ‚úÖ Salva hist√≥rico automaticamente
-- ‚úÖ 100% async/await (sem `.Result` ou `.Wait()`)
+## ?? ConfiguraÁ„o
 
-## Extensions
+### **1. Vari·veis de Ambiente**
 
-### ServiceExtensions
-M√©todos de configura√ß√£o:
-- `AddApplicationServices()` - Registra DbContext, Services e HttpClient
-- `AddN8nConfiguration()` - Configura URLs dos webhooks
-
-Uso no `Program.cs`:
-```csharp
-builder.Services.AddApplicationServices(builder.Configuration);
-builder.Services.AddN8nConfiguration(builder.Configuration);
+**Desenvolvimento (`.env.local`):**
+```env
+WEBHOOK_PRODUCTION_URL=https://n8n-n8tqhp.easypanel.host/webhook/prompt-cowboy
+WEBHOOK_TEST_URL=https://n8n-n8tqhp.easypanel.host/webhook-test/prompt-cowboy
 ```
 
-## Hist√≥rico de Execu√ß√£o
+**ProduÁ„o (GitHub Secrets):**
+```
+WEBHOOK_PRODUCTION_URL=https://n8n-n8tqhp.easypanel.host/webhook/prompt-cowboy
+WEBHOOK_TEST_URL=https://n8n-n8tqhp.easypanel.host/webhook-test/prompt-cowboy
+```
 
-Toda execu√ß√£o √© automaticamente salva na tabela `PromptHistories`:
+### **2. appsettings.json**
 
-```csharp
+```json
 {
-  "id": int,
-  "promptId": int,
-  "input": "string",
-  "output": "string",
-  "modelUsed": "string",
-  "executedAt": "datetime"
+  "N8n": {
+    "WEBHOOK_PRODUCTION_URL": "https://n8n-n8tqhp.easypanel.host/webhook/prompt-cowboy",
+    "WEBHOOK_TEST_URL": "https://n8n-n8tqhp.easypanel.host/webhook-test/prompt-cowboy"
+  }
 }
 ```
 
-## Seguran√ßa
+### **3. LÛgica de SeleÁ„o de Ambiente**
 
-### ‚úÖ Boas Pr√°ticas Implementadas
-- Webhooks configurados via vari√°veis de ambiente
-- Nunca loga URLs completas ou payloads sens√≠veis
-- Timeout configurado para evitar travamento
-- Valida√ß√£o de input via Data Annotations
-- HttpClient gerenciado via Factory (evita socket exhaustion)
+```csharp
+// PromptService.cs
+var webhookUrl = _environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
+    ? _configuration["N8n:WEBHOOK_TEST_URL"]
+    : _configuration["N8n:WEBHOOK_PRODUCTION_URL"];
+```
 
-### ‚ö†Ô∏è GitHub Secrets (Produ√ß√£o)
-Configurar no reposit√≥rio:
-- `WEBHOOK_PRODUCTION_URL`
-- `WEBHOOK_TEST_URL`
+**Ambientes:**
+- **Development** ? usa `WEBHOOK_TEST_URL`
+- **Production/Staging** ? usa `WEBHOOK_PRODUCTION_URL`
 
-## Pr√≥ximos Passos
+---
 
-1. **Criar Controller** `PromptsController.cs` com endpoints:
-   - `POST /api/prompts` - Criar prompt
-   - `POST /api/prompts/execute` - Executar prompt
-   - `GET /api/prompts` - Listar prompts
-   - `GET /api/prompts/{id}` - Buscar por ID
-   - `DELETE /api/prompts/{id}` - Deletar prompt
+## ?? Como Testar
 
-2. **Configurar n8n Workflow** para receber e processar os payloads
+### **1. Via Swagger**
 
-3. **Testes** - Criar testes unit√°rios para `PromptService`
+1. Acesse `https://localhost:7080/swagger`
+2. Expanda **POST /api/prompts/execute**
+3. Clique em **Try it out**
+4. Edite o JSON:
 
-## Exemplo de Uso
+```json
+{
+  "promptId": 1,
+  "input": "Traduza 'Hello World' para portuguÍs",
+  "model": "gpt-4"
+}
+```
+
+5. Clique em **Execute**
+6. Veja a resposta:
+
+```json
+{
+  "promptId": 1,
+  "input": "Traduza 'Hello World' para portuguÍs",
+  "output": "Ol· Mundo",
+  "modelUsed": "gpt-4",
+  "executedAt": "2025-11-08T14:30:00Z"
+}
+```
+
+---
+
+### **2. Via Tests.http**
+
+```http
+### Executar Prompt
+POST https://localhost:7080/api/prompts/execute
+Content-Type: application/json
+
+{
+  "promptId": 1,
+  "input": "Traduza 'Good morning' para espanhol",
+  "model": "gpt-4"
+}
+```
+
+---
+
+### **3. Via cURL**
 
 ```bash
-# Criar prompt
+curl -X POST https://localhost:7080/api/prompts/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "promptId": 1,
+    "input": "Traduza 'Good morning' para francÍs",
+    "model": "gpt-4"
+  }'
+```
+
+---
+
+## ?? HistÛrico de ExecuÁıes
+
+Cada execuÁ„o È salva na tabela `PromptHistories`:
+
+```sql
+SELECT 
+    ph.Id,
+    ph.PromptId,
+    p.Title AS PromptTitle,
+    ph.Input,
+    ph.Output,
+    ph.ModelUsed,
+    ph.ExecutedAt
+FROM PromptHistories ph
+INNER JOIN Prompts p ON ph.PromptId = p.Id
+ORDER BY ph.ExecutedAt DESC;
+```
+
+---
+
+## ??? SeguranÁa
+
+### ? **Boas Pr·ticas**
+
+1. **Timeout:** 120 segundos configurado
+```csharp
+httpClient.Timeout = TimeSpan.FromSeconds(120);
+```
+
+2. **Logs sem expor secrets:**
+```csharp
+_logger.LogInformation("Enviando requisiÁ„o para n8n. Environment: {Environment}", _environment);
+// Nunca logar a URL completa com tokens
+```
+
+3. **Tratamento de erros:**
+```csharp
+if (!response.IsSuccessStatusCode)
+{
+    throw new HttpRequestException($"Erro ao executar prompt no n8n: {response.StatusCode}");
+}
+```
+
+4. **ValidaÁ„o de resposta:**
+```csharp
+if (n8nResponse == null || string.IsNullOrEmpty(n8nResponse.Output))
+{
+    throw new InvalidOperationException("Resposta inv·lida do n8n");
+}
+```
+
+---
+
+## ?? Troubleshooting
+
+### **Erro: "URL do webhook n8n n„o configurada"**
+
+**SoluÁ„o:**
+1. Verifique `.env.local` ou `appsettings.Development.json`
+2. Certifique-se que as vari·veis est„o definidas:
+   - `WEBHOOK_PRODUCTION_URL`
+   - `WEBHOOK_TEST_URL`
+
+---
+
+### **Erro: "Erro ao executar prompt no n8n: 404"**
+
+**Causa:** Webhook n„o existe no n8n.
+
+**SoluÁ„o:**
+1. Verifique se o workflow `prompt-cowboy` est· ativo no n8n
+2. Confirme a URL: `https://n8n-n8tqhp.easypanel.host/webhook/prompt-cowboy`
+
+---
+
+### **Erro: "Timeout ao chamar n8n"**
+
+**Causa:** n8n demorou mais de 120 segundos.
+
+**SoluÁ„o:**
+1. Aumente o timeout em `PromptService.cs`:
+```csharp
+httpClient.Timeout = TimeSpan.FromMinutes(5); // 5 minutos
+```
+
+2. Verifique se o workflow n8n est· otimizado
+
+---
+
+### **Erro: "Resposta inv·lida do n8n"**
+
+**Causa:** n8n retornou JSON sem campo `output`.
+
+**SoluÁ„o:**
+1. Verifique o workflow no n8n
+2. Garanta que retorna:
+```json
+{
+  "output": "texto processado aqui"
+}
+```
+
+---
+
+## ?? Exemplo Completo de Fluxo
+
+### **1. Criar Prompt**
+```http
 POST /api/prompts
-{
-  "title": "Corretor de Texto",
-  "body": "Corrija o seguinte texto: {input}",
-  "model": "gpt-4o"
-}
+Content-Type: application/json
 
-# Executar prompt
-POST /api/prompts/execute
 {
-  "promptId": 1,
-  "input": "texto com erros ortograficos",
-  "model": "gpt-4o"
-}
-
-# Resposta
-{
-  "promptId": 1,
-  "input": "texto com erros ortograficos",
-  "output": "texto com erros ortogr√°ficos",
-  "modelUsed": "gpt-4o",
-  "executedAt": "2025-11-07T10:30:00Z"
+  "title": "Tradutor PT?EN",
+  "body": "Translate the following text to English: {text}",
+  "model": "gpt-4"
 }
 ```
+
+**Resposta:**
+```json
+{
+  "id": 1,
+  "title": "Tradutor PT?EN",
+  "body": "Translate the following text to English: {text}",
+  "model": "gpt-4",
+  "createdAt": "2025-11-08T10:00:00Z"
+}
+```
+
+---
+
+### **2. Executar Prompt**
+```http
+POST /api/prompts/execute
+Content-Type: application/json
+
+{
+  "promptId": 1,
+  "input": "Ol·, como vocÍ est·?",
+  "model": "gpt-4"
+}
+```
+
+**O que acontece:**
+1. API busca prompt ID 1
+2. Monta payload:
+```json
+{
+  "promptId": 1,
+  "model": "gpt-4",
+  "input": "Ol·, como vocÍ est·?",
+  "promptBody": "Translate the following text to English: {text}"
+}
+```
+3. Envia para `https://n8n-n8tqhp.easypanel.host/webhook/prompt-cowboy`
+4. n8n processa com GPT-4
+5. n8n retorna:
+```json
+{
+  "output": "Hello, how are you?"
+}
+```
+6. API salva em `PromptHistories`
+7. API retorna:
+```json
+{
+  "promptId": 1,
+  "input": "Ol·, como vocÍ est·?",
+  "output": "Hello, how are you?",
+  "modelUsed": "gpt-4",
+  "executedAt": "2025-11-08T10:05:00Z"
+}
+```
+
+---
+
+### **3. Ver HistÛrico**
+```http
+GET /api/prompts/1
+```
+
+**Resposta:**
+```json
+{
+  "id": 1,
+  "title": "Tradutor PT?EN",
+  "body": "Translate the following text to English: {text}",
+  "model": "gpt-4",
+  "promptHistories": [
+    {
+      "id": 1,
+      "input": "Ol·, como vocÍ est·?",
+      "output": "Hello, how are you?",
+      "modelUsed": "gpt-4",
+      "executedAt": "2025-11-08T10:05:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## ? Checklist de IntegraÁ„o
+
+- [x] URLs do webhook configuradas (`prompt-cowboy`)
+- [x] Vari·veis de ambiente definidas (`.env.local` e GitHub Secrets)
+- [x] `appsettings.Development.json` atualizado
+- [x] `appsettings.Production.json` criado
+- [x] LÛgica de seleÁ„o de ambiente implementada
+- [x] Timeout de 120 segundos configurado
+- [x] Tratamento de erros implementado
+- [x] Logs estruturados (sem expor secrets)
+- [x] HistÛrico salvo em `PromptHistories`
+- [x] Testes criados (`Tests.http`)
+- [x] DocumentaÁ„o completa
+
+---
+
+## ?? Status
+
+```
+? Webhook URL: https://n8n-n8tqhp.easypanel.host/webhook/prompt-cowboy
+? Ambiente: Configurado (Dev + Prod)
+? Timeout: 120 segundos
+? HistÛrico: Salvando em PromptHistories
+? Testes: DisponÌveis no Tests.http
+? DocumentaÁ„o: Completa
+```
+
+---
+
+**Atualizado:** 08/11/2025  
+**Webhook:** `prompt-cowboy`  
+**Status:** ? Pronto para uso
