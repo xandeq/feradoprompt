@@ -1,0 +1,28 @@
+# SOLUÇÃO ALTERNATIVA - Se o FTP-Deploy-Action continuar com problema
+
+# Substitua o step "Deploy to SmarterASP (Frontend)" por este:
+
+      - name: Deploy to SmarterASP (Frontend) - Alternative
+        run: |
+          # Instalar lftp
+          sudo apt-get update
+          sudo apt-get install -y lftp
+
+          # Fazer upload via lftp
+          lftp -e "
+            set ssl:verify-certificate no;
+            open ftp://${{ secrets.SMARTERASP_FTP_USER }}:${{ secrets.SMARTERASP_FTP_PASS }}@${{ secrets.SMARTERASP_FTP_HOST }};
+            mirror --reverse --delete --verbose frontend/out/ /feradoprompt/;
+            bye
+          "
+
+# OU use a action ncftp:
+
+      - name: Deploy to SmarterASP (Frontend) - ncftp
+        run: |
+          sudo apt-get install -y ncftp
+          ncftpput -R -v -u "${{ secrets.SMARTERASP_FTP_USER }}" \
+                   -p "${{ secrets.SMARTERASP_FTP_PASS }}" \
+                   "${{ secrets.SMARTERASP_FTP_HOST }}" \
+                   /feradoprompt/ \
+                   frontend/out/*

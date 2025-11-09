@@ -1,65 +1,63 @@
-name: Build & Deploy Frontend (Next.js)
+  name: Build & Deploy Frontend (Next.js)
 
-on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'frontend/**'
+  on:
+    push:
+      branches: [ main ]
+      paths:
+        - 'frontend/**'
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    env:
-      NEXT_PUBLIC_API_BASE_URL: ${{ secrets.BACKEND_API_BASE_URL_PROD }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  jobs:
+    build:
+      runs-on: ubuntu-latest
+      defaults:
+        run:
+          working-directory: frontend
+      env:
+        NEXT_PUBLIC_API_BASE_URL: ${{ secrets.BACKEND_API_BASE_URL_PROD }}
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+        - name: Setup Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: 20
 
-      - name: Install dependencies
-        run: npm ci
+        - name: Install dependencies
+          run: npm ci
 
-      - name: Build project
-        run: npm run build
+        - name: Build project
+          run: npm run build
 
-      - name: Verify build output
-        run: |
-          echo "Checking build output..."
-          ls -la out/
-          echo "Build completed successfully!"
+        - name: Verify build output
+          run: |
+            echo "Checking build output..."
+            ls -la out/
+            echo "Build completed successfully!"
 
-      - name: Debug - Check directory structure
-        run: |
-          echo "=== Current directory ==="
-          pwd
-          echo ""
-          echo "=== Repository root structure ==="
-          ls -la
-          echo ""
-          echo "=== Frontend directory ==="
-          ls -la frontend/
-          echo ""
-          echo "=== Frontend/out directory ==="
-          ls -la frontend/out/
-          echo ""
-          echo "=== Contents inside frontend/out ==="
-          find frontend/out -type f | head -20
+        - name: Debug - Check directory structure
+          run: |
+            echo "=== Current directory ==="
+            pwd
+            echo ""
+            echo "=== Repository root structure ==="
+            ls -la
+            echo ""
+            echo "=== Frontend directory ==="
+            ls -la frontend/
+            echo ""
+            echo "=== Frontend/out directory ==="
+            ls -la frontend/out/
+            echo ""
+            echo "=== Contents inside frontend/out ==="
+            find frontend/out -type f | head -20
 
-      - name: Deploy to SmarterASP (Frontend)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.SMARTERASP_FTP_HOST }}
-          username: ${{ secrets.SMARTERASP_FTP_USER }}
-          password: ${{ secrets.SMARTERASP_FTP_PASS }}
-          local-dir: ./frontend/out/
-          server-dir: /feradoprompt/
-          log-level: verbose
+        - name: Deploy to SmarterASP (Frontend)
+          uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+          with:
+            server: ${{ secrets.SMARTERASP_FTP_HOST }}
+            username: ${{ secrets.SMARTERASP_FTP_USER }}
+            password: ${{ secrets.SMARTERASP_FTP_PASS }}
+            local-dir: ./frontend/out/
+            server-dir: /feradoprompt/
+            log-level: verbose
