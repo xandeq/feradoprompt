@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "export": "echo 'Export is automatic with output:export in next.config.ts'"
   },
   "dependencies": {
     "react": "19.2.0",

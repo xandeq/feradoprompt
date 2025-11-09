@@ -19,10 +19,6 @@ jobs:
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       WEBHOOK_PRODUCTION_URL: ${{ secrets.WEBHOOK_PRODUCTION_URL }}
       WEBHOOK_TEST_URL: ${{ secrets.WEBHOOK_TEST_URL }}
-      BACKEND_FTP_SERVER: ${{ secrets.BACKEND_FTP_SERVER }}
-      BACKEND_FTP_USER: ${{ secrets.BACKEND_FTP_USER }}
-      BACKEND_FTP_PASSWORD: ${{ secrets.BACKEND_FTP_PASSWORD }}
-      BACKEND_FTP_PATH: ${{ secrets.BACKEND_FTP_PATH }}
 
     steps:
       - name: Checkout
@@ -45,8 +41,8 @@ jobs:
       - name: Deploy to SmarterASP (Backend)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ env.BACKEND_FTP_SERVER }}
-          username: ${{ env.BACKEND_FTP_USER }}
-          password: ${{ env.BACKEND_FTP_PASSWORD }}
+          server: ${{ secrets.SMARTERASP_FTP_HOST }}
+          username: ${{ secrets.SMARTERASP_FTP_USER }}
+          password: ${{ secrets.SMARTERASP_FTP_PASS }}
           local-dir: backend/FeraPrompt.Api/publish/
-          server-dir: ${{ env.BACKEND_FTP_PATH }}
+          server-dir: ${{ secrets.SMARTERASP_FTP_DIR }}/backend/
