@@ -1,0 +1,397 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/prompt-cowboy",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d1baacbc-6f52-4f81-b123-81235c4735a9",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        -928,
+        272
+      ],
+      "webhookId": "prompt-cowboy-webhook"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4-turbo",
+          "mode": "list",
+          "cachedResultName": "GPT-4-TURBO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "Você é um analisador semântico especializado. Sempre responda APENAS com JSON válido, sem texto adicional.",
+              "role": "system"
+            },
+            {
+              "content": "Analise semanticamente o texto abaixo e extraia:\n- intent (intenção principal como string)\n- entities (array de entidades ou tópicos)\n- ambiguities (array de ambiguidades identificadas)\n\nResponda APENAS com JSON no formato: {\"intent\": \"...\", \"entities\": [...], \"ambiguities\": [...]}\n\nTexto:\n{{ $json.prompt }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "e50261b2-2653-4076-9b83-93b193323ca1",
+      "name": "Semantic Analyzer",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [
+        -560,
+        -48
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "nzI94tRpP6bfP3JT",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Merge semantic analysis with original data\nconst semantic = typeof $json.output === 'string' ? JSON.parse($json.output) : ($json.output || $json);\nconst previous = $input.first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: {\n    intent: semantic.intent || 'Não identificado',\n    entities: semantic.entities || [],\n    ambiguities: semantic.ambiguities || []\n  }\n}];"
+      },
+      "id": "a65757e0-b3d5-4bc5-a0bd-916edce42b35",
+      "name": "Semantic Data Merger",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "Você é um parser estrutural especializado. Sempre responda APENAS com JSON válido, sem texto adicional.",
+              "role": "system"
+            },
+            {
+              "content": "Separe o texto abaixo em:\n- instructions (array de ações diretas)\n- context (string com informações complementares)\n- constraints (array de limites e formatos)\n\nResponda APENAS com JSON no formato: {\"instructions\": [...], \"context\": \"...\", \"constraints\": [...]}\n\nTexto:\n{{ $json.prompt }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "04c46f77-9b3a-40ac-b6fe-9d5893d8c44b",
+      "name": "Structural Parser",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [
+        -256,
+        240
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "nzI94tRpP6bfP3JT",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Merge structural parsing with previous data\nconst structural = typeof $json.output === 'string' ? JSON.parse($json.output) : ($json.output || $json);\nconst previous = $input.first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: {\n    instructions: structural.instructions || [],\n    context: structural.context || '',\n    constraints: structural.constraints || []\n  }\n}];"
+      },
+      "id": "d45cd2a3-a646-4168-9b17-69a76d2bb001",
+      "name": "Structural Data Merger",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        16,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "Você é um especialista em enriquecimento de contexto e geração de personas. Sempre responda APENAS com JSON válido, sem texto adicional.",
+              "role": "system"
+            },
+            {
+              "content": "Baseado nos dados de análise semântica e estrutural abaixo, preencha lacunas e gere:\n- persona (string descrevendo a persona adequada)\n- qualityCriteria (array de critérios de qualidade)\n- examples (array de possíveis exemplos ou edge cases)\n\nResponda APENAS com JSON no formato: {\"persona\": \"...\", \"qualityCriteria\": [...], \"examples\": [...]}\n\nDados:\n{{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "id": "5bb2d1a4-6c77-484b-a93f-f027b67e2beb",
+      "name": "Context Enricher",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        -48
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "nzI94tRpP6bfP3JT",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Merge enriched context with all previous data\nconst enriched = typeof $json.output === 'string' ? JSON.parse($json.output) : ($json.output || $json);\nconst previous = $input.first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: previous.structural,\n  enriched: {\n    persona: enriched.persona || 'Assistente geral',\n    qualityCriteria: enriched.qualityCriteria || [],\n    examples: enriched.examples || []\n  }\n}];"
+      },
+      "id": "549d3d2e-62d4-41ee-b3cf-cced48a37e8c",
+      "name": "Enriched Data Merger",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        512,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const data = $json;\nconst semantic = data.semantic || {};\nconst structural = data.structural || {};\nconst enriched = data.enriched || {};\n\n// Format instructions as string\nconst instructionsList = Array.isArray(structural.instructions) \n  ? structural.instructions.join('\\n- ') \n  : structural.instructions || 'Não especificado';\n\n// Format entities as readable list\nconst entitiesList = Array.isArray(semantic.entities) && semantic.entities.length > 0\n  ? semantic.entities.join(', ')\n  : 'Nenhuma entidade identificada';\n\n// Format examples\nconst examplesList = Array.isArray(enriched.examples) && enriched.examples.length > 0\n  ? enriched.examples.map((ex, i) => `${i + 1}. ${ex}`).join('\\n')\n  : 'Nenhum exemplo fornecido';\n\n// Format constraints if any\nconst constraintsList = Array.isArray(structural.constraints) && structural.constraints.length > 0\n  ? '\\n\\n**Restrições**\\n- ' + structural.constraints.join('\\n- ')\n  : '';\n\nconst stokePrompt = `**Situação (Contexto)**\n${structural.context || enriched.persona || 'Contexto não informado'}\n\n**Tarefa (Instruções)**\n- ${instructionsList}\n\n**Objetivo**\n${semantic.intent || 'Desconhecido'}\n\n**Conhecimento (Entidades)**\n${entitiesList}${constraintsList}\n\n**Exemplos**\n${examplesList}`;\n\nreturn [{\n  prompt: data.prompt,\n  original_prompt: data.original_prompt,\n  semantic: semantic,\n  structural: structural,\n  enriched: enriched,\n  stoke_prompt: stokePrompt\n}];"
+      },
+      "id": "3764bdd2-cf75-408c-a808-ecea40681467",
+      "name": "STOKE Mapper",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        496,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "Você é um especialista em engenharia de prompts. Sua missão é otimizar prompts aplicando clareza, precisão, concisão e estrutura adequada. Retorne APENAS o prompt otimizado em texto plano, sem JSON ou formatação adicional.",
+              "role": "system"
+            },
+            {
+              "content": "Otimize o prompt abaixo aplicando os princípios de engenharia de prompts.\nReescreva de forma precisa, concisa e clara, mantendo o formato STOKE (Situação, Tarefa, Objetivo, Conhecimento, Exemplos).\nMantenha todas as seções e informações importantes.\n\nPrompt:\n{{ $json.stoke_prompt }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.5
+        }
+      },
+      "id": "6346e14b-a18d-48b9-9341-553493d007e4",
+      "name": "Prompt Optimizer",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        272
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "nzI94tRpP6bfP3JT",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const previous = $input.first().json;\n\n// Extract optimized prompt from OpenAI response\nconst optimizedPrompt = $json.output || $json.text || $json.message?.content || previous.stoke_prompt;\n\nreturn [{\n  status: \"success\",\n  original_prompt: previous.original_prompt,\n  optimized_prompt: typeof optimizedPrompt === 'string' ? optimizedPrompt : JSON.stringify(optimizedPrompt),\n  analysis: {\n    semantic: previous.semantic,\n    structural: previous.structural,\n    enriched: previous.enriched\n  },\n  stoke_version: previous.stoke_prompt\n}];"
+      },
+      "id": "0cc2139d-2518-4ee0-8d34-29488e7cdb14",
+      "name": "Response Formatter",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        976,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "31ec4a89-4c40-4c8f-af8d-c090822fe854",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const originalPrompt = $input.first().json.body.prompt;\nconst cleanPrompt = originalPrompt\n  .replace(/\\n+/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nreturn [{\n  prompt: cleanPrompt,\n  original_prompt: originalPrompt\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        160
+      ],
+      "id": "4b141b59-1d8a-4d7a-8608-d1e2e68db965",
+      "name": "Text Preprocessor"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Text Preprocessor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Semantic Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Semantic Data Merger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Semantic Data Merger": {
+      "main": [
+        [
+          {
+            "node": "Structural Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structural Parser": {
+      "main": [
+        [
+          {
+            "node": "Structural Data Merger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structural Data Merger": {
+      "main": [
+        [
+          {
+            "node": "Context Enricher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Enricher": {
+      "main": [
+        [
+          {
+            "node": "Enriched Data Merger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enriched Data Merger": {
+      "main": [
+        [
+          {
+            "node": "STOKE Mapper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "STOKE Mapper": {
+      "main": [
+        [
+          {
+            "node": "Prompt Optimizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompt Optimizer": {
+      "main": [
+        [
+          {
+            "node": "Response Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Formatter": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Preprocessor": {
+      "main": [
+        [
+          {
+            "node": "Semantic Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "843f6378aab1e7f90052a009c5094648d3f1f2fc4ecfdb15adcca07256ae0d10"
+  }
+}
