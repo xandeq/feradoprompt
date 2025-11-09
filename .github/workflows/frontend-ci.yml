@@ -44,4 +44,4 @@ jobs:
           username: ${{ secrets.SMARTERASP_FTP_USER }}
           password: ${{ secrets.SMARTERASP_FTP_PASS }}
           local-dir: frontend/out/
-          server-dir: ${{ secrets.SMARTERASP_FTP_DIR }}/frontend/
+          server-dir: /feradoprompt/
