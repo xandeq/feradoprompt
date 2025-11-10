@@ -130,23 +130,22 @@ builder.Services.AddSwaggerGen(options =>
 // =============================
 var app = builder.Build();
 
-// Swagger SEMPRE habilitado (comentar para desabilitar em produï¿½ï¿½o)
+// Swagger HABILITADO EM TODOS OS AMBIENTES (incluindo produção)
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "Fera do Prompt API v1");
-    options.RoutePrefix = "swagger"; // AcessÃ­vel em /swagger
-    options.DocumentTitle = "Fera do Prompt API - DocumentaÃ§Ã£o";
+    options.RoutePrefix = "swagger"; // Acessível em /swagger
+    options.DocumentTitle = "Fera do Prompt API - Documentação";
     options.DisplayRequestDuration();
     options.EnableTryItOutByDefault();
     options.EnableDeepLinking();
 });
 
-// HTTPS Redirect apenas em desenvolvimento (SmarterASP gerencia SSL no proxy)
-if (app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+// Redirecionar raiz para Swagger
+app.MapGet("/", () => Results.Redirect("/swagger"));
+
+app.UseHttpsRedirection();
 
 // CORS deve vir antes de Authorization
 app.UseCors("AllowFrontend");
