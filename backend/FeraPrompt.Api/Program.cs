@@ -13,7 +13,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 var builder = WebApplication.CreateBuilder(args);
 
 // =============================
-// 1. Carregar variáveis de ambiente (.env.local em desenvolvimento)
+// 1. Carregar variï¿½veis de ambiente (.env.local em desenvolvimento)
 // =============================
 static void LoadEnvFile(string path)
 {
@@ -36,17 +36,17 @@ if (builder.Environment.IsDevelopment())
 {
     var envPath = Path.Combine(builder.Environment.ContentRootPath, ".env.local");
     LoadEnvFile(envPath);
-    
+
     // Log para debug (sem expor senhas)
     Console.WriteLine($"[DEBUG] .env.local carregado de: {envPath}");
     Console.WriteLine($"[DEBUG] DB_SERVER configurado: {!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DB_SERVER"))}");
 }
 
 // =============================
-// 2. Configurar Serviços
+// 2. Configurar Serviï¿½os
 // =============================
 
-// Adiciona todos os serviços da aplicação via Extension
+// Adiciona todos os serviï¿½os da aplicaï¿½ï¿½o via Extension
 builder.Services.AddApplicationServices(builder.Configuration);
 
 // Configura webhooks do n8n
@@ -105,7 +105,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Fera do Prompt API",
         Version = "v1.0.0",
-        Description = "API para gerenciamento de prompts com integração n8n",
+        Description = "API para gerenciamento de prompts com integraï¿½ï¿½o n8n",
         Contact = new()
         {
             Name = "Fera do Prompt Team",
@@ -113,7 +113,7 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 
-    // Incluir comentários XML
+    // Incluir comentï¿½rios XML
     var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     if (File.Exists(xmlPath))
@@ -130,19 +130,23 @@ builder.Services.AddSwaggerGen(options =>
 // =============================
 var app = builder.Build();
 
-// Swagger SEMPRE habilitado (comentar para desabilitar em produção)
+// Swagger SEMPRE habilitado (comentar para desabilitar em produï¿½ï¿½o)
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "Fera do Prompt API v1");
-    options.RoutePrefix = "swagger"; // Acessível em /swagger
-    options.DocumentTitle = "Fera do Prompt API - Documentação";
+    options.RoutePrefix = "swagger"; // AcessÃ­vel em /swagger
+    options.DocumentTitle = "Fera do Prompt API - DocumentaÃ§Ã£o";
     options.DisplayRequestDuration();
     options.EnableTryItOutByDefault();
     options.EnableDeepLinking();
 });
 
-app.UseHttpsRedirection();
+// HTTPS Redirect apenas em desenvolvimento (SmarterASP gerencia SSL no proxy)
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // CORS deve vir antes de Authorization
 app.UseCors("AllowFrontend");
@@ -154,7 +158,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Log de inicialização (sem expor secrets)
+// Log de inicializaï¿½ï¿½o (sem expor secrets)
 app.Logger.LogInformation("?? Fera do Prompt API iniciada");
 app.Logger.LogInformation("Ambiente: {Environment}", app.Environment.EnvironmentName);
 

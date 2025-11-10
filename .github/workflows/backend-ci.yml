@@ -42,6 +42,26 @@ jobs:
       - name: Publish build
         run: dotnet publish -c Release -o publish
 
+      - name: Copy web.config to publish folder
+        run: |
+          if [ -f web.config ]; then
+            cp web.config publish/
+            echo "web.config copied to publish folder"
+          else
+            echo "Warning: web.config not found"
+          fi
+
+      - name: Verify publish output
+        run: |
+          echo "=== Files in publish folder ==="
+          ls -la publish/
+          echo ""
+          echo "=== Checking for important files ==="
+          [ -f publish/FeraPrompt.Api.dll ] && echo "✓ FeraPrompt.Api.dll found" || echo "✗ FeraPrompt.Api.dll missing"
+          [ -f publish/web.config ] && echo "✓ web.config found" || echo "✗ web.config missing"
+          [ -f publish/appsettings.json ] && echo "✓ appsettings.json found" || echo "✗ appsettings.json missing"
+          [ -f publish/appsettings.Production.json ] && echo "✓ appsettings.Production.json found" || echo "✗ appsettings.Production.json missing"
+
       - name: Verify FTP secrets
         run: |
           echo "FTP Server: ${{ env.BACKEND_FTP_SERVER }}"
@@ -54,6 +74,7 @@ jobs:
           server: ${{ env.BACKEND_FTP_SERVER }}
           username: ${{ env.BACKEND_FTP_USER }}
           password: ${{ env.BACKEND_FTP_PASSWORD }}
-          local-dir: publish/
+          local-dir: ./backend/FeraPrompt.Api/publish/
           server-dir: ${{ env.BACKEND_FTP_PATH }}
           dangerous-clean-slate: false
+          log-level: verbose
