@@ -42,15 +42,6 @@ jobs:
       - name: Publish build
         run: dotnet publish -c Release -o publish
 
-      - name: Copy web.config to publish folder
-        run: |
-          if [ -f web.config ]; then
-            cp web.config publish/
-            echo "web.config copied to publish folder"
-          else
-            echo "Warning: web.config not found"
-          fi
-
       - name: Verify publish output
         run: |
           echo "=== Files in publish folder ==="
