@@ -17,14 +17,32 @@ public static class ServiceExtensions
         IConfiguration configuration)
     {
         // Configuração do DbContext com SQL Server
-        var connectionString = BuildConnectionString(configuration);
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(connectionString));
+        try
+        {
+            var connectionString = BuildConnectionString(configuration);
+            
+            if (!string.IsNullOrEmpty(connectionString))
+            {
+                services.AddDbContext<ApplicationDbContext>(options =>
+                    options.UseSqlServer(connectionString));
 
-        // Registro dos Services
-        services.AddScoped<IPromptService, PromptService>();
+                // Registro dos Services
+                services.AddScoped<IPromptService, PromptService>();
+                
+                Console.WriteLine("? Database connection configured successfully");
+            }
+            else
+            {
+                Console.WriteLine("?? WARNING: Database connection not configured. Running in limited mode.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"? ERROR configuring database: {ex.Message}");
+            Console.WriteLine("?? Application will start but database operations will fail.");
+        }
 
-        // Configuração do HttpClientFactory
+        // Configuração do HttpClientFactory (sempre necessário)
         services.AddHttpClient();
 
         return services;
@@ -34,7 +52,7 @@ public static class ServiceExtensions
     /// Monta a connection string a partir das variáveis de ambiente ou appsettings.json
     /// Prioridade: ENV ? appsettings.ConnectionStrings ? appsettings.Database
     /// </summary>
-    private static string BuildConnectionString(IConfiguration configuration)
+    private static string? BuildConnectionString(IConfiguration configuration)
     {
         // Prioridade 1: Variáveis de ambiente (GitHub Secrets em produção, .env.local em dev)
         var server = Environment.GetEnvironmentVariable("DB_SERVER");
@@ -45,14 +63,16 @@ public static class ServiceExtensions
         if (!string.IsNullOrEmpty(server) && !string.IsNullOrEmpty(database) &&
             !string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(password))
         {
+            Console.WriteLine($"? Using database from environment variables: {server}/{database}");
             return $"Server={server};Database={database};User Id={user};Password={password};" +
-                   "TrustServerCertificate=True;MultipleActiveResultSets=True;";
+                   "TrustServerCertificate=True;MultipleActiveResultSets=True;Connect Timeout=30;";
         }
 
         // Prioridade 2: appsettings.json ? ConnectionStrings:Default
         var connString = configuration.GetConnectionString("Default");
         if (!string.IsNullOrEmpty(connString))
         {
+            Console.WriteLine("? Using database from appsettings ConnectionStrings:Default");
             return connString;
         }
 
@@ -68,18 +88,15 @@ public static class ServiceExtensions
             if (!string.IsNullOrEmpty(server) && !string.IsNullOrEmpty(database) &&
                 !string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(password))
             {
+                Console.WriteLine($"? Using database from appsettings Database section: {server}/{database}");
                 return $"Server={server};Database={database};User Id={user};Password={password};" +
-                       "TrustServerCertificate=True;MultipleActiveResultSets=True;";
+                       "TrustServerCertificate=True;MultipleActiveResultSets=True;Connect Timeout=30;";
             }
         }
 
-        // Se nenhuma configuração foi encontrada, lançar exceção informativa
-        throw new InvalidOperationException(
-            "? Connection string não configurada. Configure uma das opções:\n" +
-            "1. Variáveis de ambiente: DB_SERVER, DB_NAME, DB_USER, DB_PASSWORD (.env.local ou GitHub Secrets)\n" +
-            "2. appsettings.Development.json ? ConnectionStrings:Default\n" +
-            "3. appsettings.Development.json ? Database (Server, Name, User, Password)"
-        );
+        // Retorna null em vez de exception (permite app iniciar sem banco)
+        Console.WriteLine("?? No database configuration found");
+        return null;
     }
 
     /// <summary>
@@ -90,34 +107,40 @@ public static class ServiceExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Prioridade 1: Variáveis de ambiente
-        var testUrl = Environment.GetEnvironmentVariable("WEBHOOK_TEST_URL");
-        var prodUrl = Environment.GetEnvironmentVariable("WEBHOOK_PRODUCTION_URL");
-
-        // Prioridade 2: appsettings.json ? N8n
-        if (string.IsNullOrEmpty(testUrl) || string.IsNullOrEmpty(prodUrl))
+        try
         {
-            var n8nConfig = configuration.GetSection("N8n");
-            if (n8nConfig.Exists())
+            // Prioridade 1: Variáveis de ambiente
+            var testUrl = Environment.GetEnvironmentVariable("WEBHOOK_TEST_URL");
+            var prodUrl = Environment.GetEnvironmentVariable("WEBHOOK_PRODUCTION_URL");
+
+            // Prioridade 2: appsettings.json ? N8n
+            if (string.IsNullOrEmpty(testUrl) || string.IsNullOrEmpty(prodUrl))
             {
-                testUrl ??= n8nConfig["WEBHOOK_TEST_URL"];
-                prodUrl ??= n8nConfig["WEBHOOK_PRODUCTION_URL"];
+                var n8nConfig = configuration.GetSection("N8n");
+                if (n8nConfig.Exists())
+                {
+                    testUrl ??= n8nConfig["WEBHOOK_TEST_URL"];
+                    prodUrl ??= n8nConfig["WEBHOOK_PRODUCTION_URL"];
+                }
             }
-        }
 
-        // Validação
-        if (string.IsNullOrEmpty(testUrl) || string.IsNullOrEmpty(prodUrl))
+            // Validação
+            if (string.IsNullOrEmpty(testUrl) || string.IsNullOrEmpty(prodUrl))
+            {
+                Console.WriteLine("?? WARNING: n8n webhook URLs not configured");
+                return services;
+            }
+
+            // Adiciona as configurações
+            configuration["N8n:WEBHOOK_TEST_URL"] = testUrl;
+            configuration["N8n:WEBHOOK_PRODUCTION_URL"] = prodUrl;
+            
+            Console.WriteLine("? n8n webhooks configured successfully");
+        }
+        catch (Exception ex)
         {
-            throw new InvalidOperationException(
-                "? URLs do webhook n8n não configuradas. Configure uma das opções:\n" +
-                "1. Variáveis de ambiente: WEBHOOK_TEST_URL, WEBHOOK_PRODUCTION_URL (.env.local ou GitHub Secrets)\n" +
-                "2. appsettings.Development.json ? N8n (WEBHOOK_TEST_URL, WEBHOOK_PRODUCTION_URL)"
-            );
+            Console.WriteLine($"? ERROR configuring n8n: {ex.Message}");
         }
-
-        // Adiciona as configurações no formato esperado pelo service
-        configuration["N8n:WEBHOOK_TEST_URL"] = testUrl;
-        configuration["N8n:WEBHOOK_PRODUCTION_URL"] = prodUrl;
 
         return services;
     }
