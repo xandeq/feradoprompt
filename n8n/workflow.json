@@ -59,7 +59,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get output from Semantic Analyzer\nconst analyzerOutput = $input.first().json;\nconst semantic = typeof analyzerOutput.output === 'string' ? JSON.parse(analyzerOutput.output) : (analyzerOutput.output || analyzerOutput);\n\n// Since we can't access previous node easily, get from analyzer input\n// The Semantic Analyzer receives {prompt, original_prompt} from Text Preprocessor\n// But we need to reconstruct from current context\nconst prompt = analyzerOutput.prompt || $('Text Preprocessor').first().json.prompt;\nconst original_prompt = analyzerOutput.original_prompt || $('Text Preprocessor').first().json.original_prompt;\n\nreturn [{\n  prompt: prompt,\n  original_prompt: original_prompt,\n  semantic: {\n    intent: semantic.intent || 'Não identificado',\n    entities: semantic.entities || [],\n    ambiguities: semantic.ambiguities || []\n  }\n}];"
+        "jsCode": "// Get output from Semantic Analyzer\nconst analyzerOutput = $input.first().json;\n\n// OpenAI with jsonOutput returns: { message: { content: {...} } }\nconst semantic = analyzerOutput.message?.content || analyzerOutput.output || analyzerOutput;\n\n// Get previous data from Text Preprocessor\nconst prompt = analyzerOutput.prompt || $('Text Preprocessor').first().json.prompt;\nconst original_prompt = analyzerOutput.original_prompt || $('Text Preprocessor').first().json.original_prompt;\n\nreturn [{\n  prompt: prompt,\n  original_prompt: original_prompt,\n  semantic: {\n    intent: semantic.intent || 'Não identificado',\n    entities: semantic.entities || [],\n    ambiguities: semantic.ambiguities || []\n  }\n}];"
       },
       "id": "a65757e0-b3d5-4bc5-a0bd-916edce42b35",
       "name": "Semantic Data Merger",
@@ -112,7 +112,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get output from Structural Parser\nconst parserOutput = $input.first().json;\nconst structural = typeof parserOutput.output === 'string' ? JSON.parse(parserOutput.output) : (parserOutput.output || parserOutput);\n\n// Get previous data from Semantic Data Merger\nconst previous = $('Semantic Data Merger').first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: {\n    instructions: structural.instructions || [],\n    context: structural.context || '',\n    constraints: structural.constraints || []\n  }\n}];"
+        "jsCode": "// Get output from Structural Parser\nconst parserOutput = $input.first().json;\n\n// OpenAI with jsonOutput returns: { message: { content: {...} } }\nconst structural = parserOutput.message?.content || parserOutput.output || parserOutput;\n\n// Get previous data from Semantic Data Merger\nconst previous = $('Semantic Data Merger').first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: {\n    instructions: structural.instructions || [],\n    context: structural.context || '',\n    constraints: structural.constraints || []\n  }\n}];"
       },
       "id": "d45cd2a3-a646-4168-9b17-69a76d2bb001",
       "name": "Structural Data Merger",
@@ -165,7 +165,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get output from Context Enricher\nconst enricherOutput = $input.first().json;\nconst enriched = typeof enricherOutput.output === 'string' ? JSON.parse(enricherOutput.output) : (enricherOutput.output || enricherOutput);\n\n// Get previous data from Structural Data Merger\nconst previous = $('Structural Data Merger').first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: previous.structural,\n  enriched: {\n    persona: enriched.persona || 'Assistente geral',\n    qualityCriteria: enriched.qualityCriteria || [],\n    examples: enriched.examples || []\n  }\n}];"
+        "jsCode": "// Get output from Context Enricher\nconst enricherOutput = $input.first().json;\n\n// OpenAI with jsonOutput returns: { message: { content: {...} } }\nconst enriched = enricherOutput.message?.content || enricherOutput.output || enricherOutput;\n\n// Get previous data from Structural Data Merger\nconst previous = $('Structural Data Merger').first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: previous.structural,\n  enriched: {\n    persona: enriched.persona || 'Assistente geral',\n    qualityCriteria: enriched.qualityCriteria || [],\n    examples: enriched.examples || []\n  }\n}];"
       },
       "id": "549d3d2e-62d4-41ee-b3cf-cced48a37e8c",
       "name": "Enriched Data Merger",
@@ -230,7 +230,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get output from Prompt Optimizer\nconst optimizerOutput = $input.first().json;\nconst optimizedPrompt = optimizerOutput.output || optimizerOutput.text || optimizerOutput.message?.content || '';\n\n// Get previous data from STOKE Mapper\nconst previous = $('STOKE Mapper').first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: previous.structural,\n  enriched: previous.enriched,\n  stoke_prompt: previous.stoke_prompt,\n  optimized_prompt: typeof optimizedPrompt === 'string' ? optimizedPrompt.trim() : JSON.stringify(optimizedPrompt)\n}];"
+        "jsCode": "// Get output from Prompt Optimizer\nconst optimizerOutput = $input.first().json;\n\n// OpenAI without jsonOutput returns: { message: { content: \"text...\" } }\nconst optimizedPrompt = optimizerOutput.message?.content || optimizerOutput.output || optimizerOutput.text || '';\n\n// Get previous data from STOKE Mapper\nconst previous = $('STOKE Mapper').first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: previous.structural,\n  enriched: previous.enriched,\n  stoke_prompt: previous.stoke_prompt,\n  optimized_prompt: typeof optimizedPrompt === 'string' ? optimizedPrompt.trim() : JSON.stringify(optimizedPrompt)\n}];"
       },
       "id": "8a9f3e5d-1c2b-4d3e-9f8a-7b6c5d4e3f2a",
       "name": "Optimizer Data Merger",
