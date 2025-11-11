@@ -32,7 +32,8 @@
               "role": "system"
             },
             {
-              "content": "Analise semanticamente o texto abaixo e extraia:\n- intent (intenção principal como string)\n- entities (array de entidades ou tópicos)\n- ambiguities (array de ambiguidades identificadas)\n\nResponda APENAS com JSON no formato: {\"intent\": \"...\", \"entities\": [...], \"ambiguities\": [...]}\n\nTexto:\n{{ $json.prompt }}"
+              "content": "Analise semanticamente o texto abaixo e extraia:\n- intent (intenção principal como string)\n- entities (array de entidades ou tópicos)\n- ambiguities (array de ambiguidades identificadas)\n\nResponda APENAS com JSON no formato: {\"intent\": \"...\", \"entities\": [...], \"ambiguities\": [...]}\n\nTexto:\n{{ $json.prompt }}",
+              "role": "user"
             }
           ]
         },
@@ -84,7 +85,8 @@
               "role": "system"
             },
             {
-              "content": "Separe o texto abaixo em:\n- instructions (array de ações diretas)\n- context (string com informações complementares)\n- constraints (array de limites e formatos)\n\nResponda APENAS com JSON no formato: {\"instructions\": [...], \"context\": \"...\", \"constraints\": [...]}\n\nTexto:\n{{ $json.prompt }}"
+              "content": "Separe o texto abaixo em:\n- instructions (array de ações diretas)\n- context (string com informações complementares)\n- constraints (array de limites e formatos)\n\nResponda APENAS com JSON no formato: {\"instructions\": [...], \"context\": \"...\", \"constraints\": [...]}\n\nTexto:\n{{ $json.prompt }}",
+              "role": "user"
             }
           ]
         },
@@ -136,7 +138,8 @@
               "role": "system"
             },
             {
-              "content": "Baseado nos dados de análise semântica e estrutural abaixo, preencha lacunas e gere:\n- persona (string descrevendo a persona adequada)\n- qualityCriteria (array de critérios de qualidade)\n- examples (array de possíveis exemplos ou edge cases)\n\nResponda APENAS com JSON no formato: {\"persona\": \"...\", \"qualityCriteria\": [...], \"examples\": [...]}\n\nDados:\n{{ JSON.stringify($json) }}"
+              "content": "Baseado nos dados de análise semântica e estrutural abaixo, preencha lacunas e gere:\n- persona (string descrevendo a persona adequada)\n- qualityCriteria (array de critérios de qualidade)\n- examples (array de possíveis exemplos ou edge cases)\n\nResponda APENAS com JSON no formato: {\"persona\": \"...\", \"qualityCriteria\": [...], \"examples\": [...]}\n\nDados:\n{{ JSON.stringify($json) }}",
+              "role": "user"
             }
           ]
         },
@@ -201,7 +204,8 @@
               "role": "system"
             },
             {
-              "content": "Otimize o prompt abaixo aplicando os princípios de engenharia de prompts.\nReescreva de forma precisa, concisa e clara, mantendo o formato STOKE (Situação, Tarefa, Objetivo, Conhecimento, Exemplos).\nMantenha todas as seções e informações importantes.\n\nPrompt:\n{{ $json.stoke_prompt }}"
+              "content": "Otimize o prompt abaixo aplicando os princípios de engenharia de prompts.\nReescreva de forma precisa, concisa e clara, mantendo o formato STOKE (Situação, Tarefa, Objetivo, Conhecimento, Exemplos).\nMantenha todas as seções e informações importantes.\n\nPrompt:\n{{ $json.stoke_prompt }}",
+              "role": "user"
             }
           ]
         },
