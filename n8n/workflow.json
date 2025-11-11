@@ -32,7 +32,7 @@
               "role": "system"
             },
             {
-              "content": "Analise semanticamente o texto abaixo e extraia:\n- intent (intenção principal como string)\n- entities (array de entidades ou tópicos)\n- ambiguities (array de ambiguidades identificadas)\n\nResponda APENAS com JSON no formato: {\"intent\": \"...\", \"entities\": [...], \"ambiguities\": [...]}\n\nTexto:\n{{ $json.prompt }}",
+              "content": "Analise semanticamente o seguinte prompt do usuário e extraia informações estruturadas.\n\nRETORNE APENAS JSON NO FORMATO EXATO:\n{\n  \"intent\": \"descrição clara da intenção do usuário\",\n  \"entities\": [\"lista\", \"de\", \"entidades\", \"mencionadas\"],\n  \"ambiguities\": [\"possíveis\", \"ambiguidades\"]\n}\n\nPROMPT DO USUÁRIO:\n{{ $json.prompt }}",
               "role": "user"
             }
           ]
@@ -85,7 +85,7 @@
               "role": "system"
             },
             {
-              "content": "Separe o texto abaixo em:\n- instructions (array de ações diretas)\n- context (string com informações complementares)\n- constraints (array de limites e formatos)\n\nResponda APENAS com JSON no formato: {\"instructions\": [...], \"context\": \"...\", \"constraints\": [...]}\n\nTexto:\n{{ $json.prompt }}",
+              "content": "Analise estruturalmente o seguinte prompt do usuário e extraia:\n\nRETORNE APENAS JSON NO FORMATO EXATO:\n{\n  \"instructions\": [\"ação 1\", \"ação 2\"],\n  \"context\": \"contexto e informações de fundo\",\n  \"constraints\": [\"limite 1\", \"formato X\"]\n}\n\nPROMPT DO USUÁRIO:\n{{ $json.prompt }}",
               "role": "user"
             }
           ]
@@ -134,11 +134,11 @@
         "messages": {
           "values": [
             {
-              "content": "Você é um especialista em enriquecimento de contexto e geração de personas. Sempre responda APENAS com JSON válido, sem texto adicional.",
+              "content": "Você é um especialista em enriquecimento de contexto. Sempre responda APENAS com JSON válido, sem texto adicional. NUNCA invente informações que não estão nos dados fornecidos.",
               "role": "system"
             },
             {
-              "content": "Baseado nos dados de análise semântica e estrutural abaixo, preencha lacunas e gere:\n- persona (string descrevendo a persona adequada)\n- qualityCriteria (array de critérios de qualidade)\n- examples (array de possíveis exemplos ou edge cases)\n\nResponda APENAS com JSON no formato: {\"persona\": \"...\", \"qualityCriteria\": [...], \"examples\": [...]}\n\nDados:\n{{ JSON.stringify($json) }}",
+              "content": "Baseado EXCLUSIVAMENTE nos dados abaixo (análise semântica e estrutural do prompt original), gere:\n\nRETORNE APENAS JSON:\n{\n  \"persona\": \"persona adequada baseada NO CONTEXTO DOS DADOS\",\n  \"qualityCriteria\": [\"critérios RELEVANTES AO PROMPT\"],\n  \"examples\": [\"exemplos RELACIONADOS AO TEMA DO PROMPT\"]\n}\n\nIMPORTANTE: Use APENAS informações presentes nos dados. NÃO invente contextos diferentes.\n\nDADOS DA ANÁLISE:\n{{ JSON.stringify($json) }}",
               "role": "user"
             }
           ]
