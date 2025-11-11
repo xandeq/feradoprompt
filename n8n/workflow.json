@@ -21,9 +21,9 @@
       "parameters": {
         "modelId": {
           "__rl": true,
-          "value": "gpt-4-turbo",
+          "value": "gpt-4o-mini",
           "mode": "list",
-          "cachedResultName": "GPT-4-TURBO"
+          "cachedResultName": "GPT-4O-MINI"
         },
         "messages": {
           "values": [
@@ -226,14 +226,27 @@
     },
     {
       "parameters": {
-        "functionCode": "const previous = $input.first().json;\n\n// Extract optimized prompt from OpenAI response\nconst optimizedPrompt = $json.output || $json.text || $json.message?.content || previous.stoke_prompt;\n\nreturn [{\n  status: \"success\",\n  original_prompt: previous.original_prompt,\n  optimized_prompt: typeof optimizedPrompt === 'string' ? optimizedPrompt : JSON.stringify(optimizedPrompt),\n  analysis: {\n    semantic: previous.semantic,\n    structural: previous.structural,\n    enriched: previous.enriched\n  },\n  stoke_version: previous.stoke_prompt\n}];"
+        "functionCode": "// Merge optimized prompt with all previous data\nconst optimizedPrompt = $json.output || $json.text || $json.message?.content || '';\nconst previous = $input.first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: previous.structural,\n  enriched: previous.enriched,\n  stoke_prompt: previous.stoke_prompt,\n  optimized_prompt: typeof optimizedPrompt === 'string' ? optimizedPrompt.trim() : JSON.stringify(optimizedPrompt)\n}];"
+      },
+      "id": "8a9f3e5d-1c2b-4d3e-9f8a-7b6c5d4e3f2a",
+      "name": "Optimizer Data Merger",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        832,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const data = $json;\n\nreturn [{\n  status: \"success\",\n  original_prompt: data.original_prompt,\n  optimized_prompt: data.optimized_prompt,\n  stoke_version: data.stoke_prompt,\n  analysis: {\n    semantic: data.semantic,\n    structural: data.structural,\n    enriched: data.enriched\n  }\n}];"
       },
       "id": "0cc2139d-2518-4ee0-8d34-29488e7cdb14",
       "name": "Response Formatter",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        976,
+        1024,
         272
       ]
     },
@@ -248,7 +261,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1184,
+        1232,
         272
       ]
     },
@@ -356,6 +369,17 @@
       ]
     },
     "Prompt Optimizer": {
+      "main": [
+        [
+          {
+            "node": "Optimizer Data Merger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Optimizer Data Merger": {
       "main": [
         [
           {
