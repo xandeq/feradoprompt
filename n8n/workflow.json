@@ -58,12 +58,12 @@
     },
     {
       "parameters": {
-        "functionCode": "// Merge semantic analysis with original data\nconst semantic = typeof $json.output === 'string' ? JSON.parse($json.output) : ($json.output || $json);\nconst previous = $input.first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: {\n    intent: semantic.intent || 'Não identificado',\n    entities: semantic.entities || [],\n    ambiguities: semantic.ambiguities || []\n  }\n}];"
+        "jsCode": "// Get output from Semantic Analyzer\nconst analyzerOutput = $input.first().json;\nconst semantic = typeof analyzerOutput.output === 'string' ? JSON.parse(analyzerOutput.output) : (analyzerOutput.output || analyzerOutput);\n\n// Since we can't access previous node easily, get from analyzer input\n// The Semantic Analyzer receives {prompt, original_prompt} from Text Preprocessor\n// But we need to reconstruct from current context\nconst prompt = analyzerOutput.prompt || $('Text Preprocessor').first().json.prompt;\nconst original_prompt = analyzerOutput.original_prompt || $('Text Preprocessor').first().json.original_prompt;\n\nreturn [{\n  prompt: prompt,\n  original_prompt: original_prompt,\n  semantic: {\n    intent: semantic.intent || 'Não identificado',\n    entities: semantic.entities || [],\n    ambiguities: semantic.ambiguities || []\n  }\n}];"
       },
       "id": "a65757e0-b3d5-4bc5-a0bd-916edce42b35",
       "name": "Semantic Data Merger",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         -240,
         -48
@@ -110,12 +110,12 @@
     },
     {
       "parameters": {
-        "functionCode": "// Merge structural parsing with previous data\nconst structural = typeof $json.output === 'string' ? JSON.parse($json.output) : ($json.output || $json);\nconst previous = $input.first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: {\n    instructions: structural.instructions || [],\n    context: structural.context || '',\n    constraints: structural.constraints || []\n  }\n}];"
+        "jsCode": "// Get output from Structural Parser\nconst parserOutput = $input.first().json;\nconst structural = typeof parserOutput.output === 'string' ? JSON.parse(parserOutput.output) : (parserOutput.output || parserOutput);\n\n// Get previous data from Semantic Data Merger\nconst previous = $('Semantic Data Merger').first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: {\n    instructions: structural.instructions || [],\n    context: structural.context || '',\n    constraints: structural.constraints || []\n  }\n}];"
       },
       "id": "d45cd2a3-a646-4168-9b17-69a76d2bb001",
       "name": "Structural Data Merger",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         16,
         240
@@ -162,12 +162,12 @@
     },
     {
       "parameters": {
-        "functionCode": "// Merge enriched context with all previous data\nconst enriched = typeof $json.output === 'string' ? JSON.parse($json.output) : ($json.output || $json);\nconst previous = $input.first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: previous.structural,\n  enriched: {\n    persona: enriched.persona || 'Assistente geral',\n    qualityCriteria: enriched.qualityCriteria || [],\n    examples: enriched.examples || []\n  }\n}];"
+        "jsCode": "// Get output from Context Enricher\nconst enricherOutput = $input.first().json;\nconst enriched = typeof enricherOutput.output === 'string' ? JSON.parse(enricherOutput.output) : (enricherOutput.output || enricherOutput);\n\n// Get previous data from Structural Data Merger\nconst previous = $('Structural Data Merger').first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: previous.structural,\n  enriched: {\n    persona: enriched.persona || 'Assistente geral',\n    qualityCriteria: enriched.qualityCriteria || [],\n    examples: enriched.examples || []\n  }\n}];"
       },
       "id": "549d3d2e-62d4-41ee-b3cf-cced48a37e8c",
       "name": "Enriched Data Merger",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         512,
         -48
@@ -175,12 +175,12 @@
     },
     {
       "parameters": {
-        "functionCode": "const data = $json;\nconst semantic = data.semantic || {};\nconst structural = data.structural || {};\nconst enriched = data.enriched || {};\n\n// Format instructions as string\nconst instructionsList = Array.isArray(structural.instructions) \n  ? structural.instructions.join('\\n- ') \n  : structural.instructions || 'Não especificado';\n\n// Format entities as readable list\nconst entitiesList = Array.isArray(semantic.entities) && semantic.entities.length > 0\n  ? semantic.entities.join(', ')\n  : 'Nenhuma entidade identificada';\n\n// Format examples\nconst examplesList = Array.isArray(enriched.examples) && enriched.examples.length > 0\n  ? enriched.examples.map((ex, i) => `${i + 1}. ${ex}`).join('\\n')\n  : 'Nenhum exemplo fornecido';\n\n// Format constraints if any\nconst constraintsList = Array.isArray(structural.constraints) && structural.constraints.length > 0\n  ? '\\n\\n**Restrições**\\n- ' + structural.constraints.join('\\n- ')\n  : '';\n\nconst stokePrompt = `**Situação (Contexto)**\n${structural.context || enriched.persona || 'Contexto não informado'}\n\n**Tarefa (Instruções)**\n- ${instructionsList}\n\n**Objetivo**\n${semantic.intent || 'Desconhecido'}\n\n**Conhecimento (Entidades)**\n${entitiesList}${constraintsList}\n\n**Exemplos**\n${examplesList}`;\n\nreturn [{\n  prompt: data.prompt,\n  original_prompt: data.original_prompt,\n  semantic: semantic,\n  structural: structural,\n  enriched: enriched,\n  stoke_prompt: stokePrompt\n}];"
+        "jsCode": "// Get all previous data from Enriched Data Merger\nconst data = $input.first().json;\nconst semantic = data.semantic || {};\nconst structural = data.structural || {};\nconst enriched = data.enriched || {};\n\n// Format instructions as string\nconst instructionsList = Array.isArray(structural.instructions) \n  ? structural.instructions.join('\\n- ') \n  : structural.instructions || 'Não especificado';\n\n// Format entities as readable list\nconst entitiesList = Array.isArray(semantic.entities) && semantic.entities.length > 0\n  ? semantic.entities.join(', ')\n  : 'Nenhuma entidade identificada';\n\n// Format examples\nconst examplesList = Array.isArray(enriched.examples) && enriched.examples.length > 0\n  ? enriched.examples.map((ex, i) => `${i + 1}. ${ex}`).join('\\n')\n  : 'Nenhum exemplo fornecido';\n\n// Format constraints if any\nconst constraintsList = Array.isArray(structural.constraints) && structural.constraints.length > 0\n  ? '\\n\\n**Restrições**\\n- ' + structural.constraints.join('\\n- ')\n  : '';\n\nconst stokePrompt = `**Situação (Contexto)**\n${structural.context || enriched.persona || 'Contexto não informado'}\n\n**Tarefa (Instruções)**\n- ${instructionsList}\n\n**Objetivo**\n${semantic.intent || 'Desconhecido'}\n\n**Conhecimento (Entidades)**\n${entitiesList}${constraintsList}\n\n**Exemplos**\n${examplesList}`;\n\nreturn [{\n  prompt: data.prompt,\n  original_prompt: data.original_prompt,\n  semantic: semantic,\n  structural: structural,\n  enriched: enriched,\n  stoke_prompt: stokePrompt\n}];"
       },
       "id": "3764bdd2-cf75-408c-a808-ecea40681467",
       "name": "STOKE Mapper",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         496,
         272
@@ -226,12 +226,12 @@
     },
     {
       "parameters": {
-        "functionCode": "// Merge optimized prompt with all previous data\nconst optimizedPrompt = $json.output || $json.text || $json.message?.content || '';\nconst previous = $input.first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: previous.structural,\n  enriched: previous.enriched,\n  stoke_prompt: previous.stoke_prompt,\n  optimized_prompt: typeof optimizedPrompt === 'string' ? optimizedPrompt.trim() : JSON.stringify(optimizedPrompt)\n}];"
+        "jsCode": "// Get output from Prompt Optimizer\nconst optimizerOutput = $input.first().json;\nconst optimizedPrompt = optimizerOutput.output || optimizerOutput.text || optimizerOutput.message?.content || '';\n\n// Get previous data from STOKE Mapper\nconst previous = $('STOKE Mapper').first().json;\n\nreturn [{\n  prompt: previous.prompt,\n  original_prompt: previous.original_prompt,\n  semantic: previous.semantic,\n  structural: previous.structural,\n  enriched: previous.enriched,\n  stoke_prompt: previous.stoke_prompt,\n  optimized_prompt: typeof optimizedPrompt === 'string' ? optimizedPrompt.trim() : JSON.stringify(optimizedPrompt)\n}];"
       },
       "id": "8a9f3e5d-1c2b-4d3e-9f8a-7b6c5d4e3f2a",
       "name": "Optimizer Data Merger",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         832,
         272
@@ -239,12 +239,12 @@
     },
     {
       "parameters": {
-        "functionCode": "const data = $json;\n\nreturn [{\n  status: \"success\",\n  original_prompt: data.original_prompt,\n  optimized_prompt: data.optimized_prompt,\n  stoke_version: data.stoke_prompt,\n  analysis: {\n    semantic: data.semantic,\n    structural: data.structural,\n    enriched: data.enriched\n  }\n}];"
+        "jsCode": "const data = $input.first().json;\n\nreturn [{\n  status: \"success\",\n  original_prompt: data.original_prompt,\n  optimized_prompt: data.optimized_prompt,\n  stoke_version: data.stoke_prompt,\n  analysis: {\n    semantic: data.semantic,\n    structural: data.structural,\n    enriched: data.enriched\n  }\n}];"
       },
       "id": "0cc2139d-2518-4ee0-8d34-29488e7cdb14",
       "name": "Response Formatter",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         1024,
         272
