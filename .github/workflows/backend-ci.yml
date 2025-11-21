@@ -1,94 +1,102 @@
-name: Build & Deploy Backend (.NET 8)
+name: Backend - Build & FTP Deploy (.NET 8)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
     paths:
-      - 'backend/**'
+      - "backend/**"
+  workflow_dispatch:
+
+concurrency:
+  group: smarterasp-backend
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_NOLOGO: true
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend/FeraPrompt.Api
-    env:
-      DB_SERVER: ${{ secrets.DB_SERVER }}
-      DB_NAME: ${{ secrets.DB_NAME }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      WEBHOOK_PRODUCTION_URL: ${{ secrets.WEBHOOK_PRODUCTION_URL }}
-      WEBHOOK_TEST_URL: ${{ secrets.WEBHOOK_TEST_URL }}
-      BACKEND_FTP_SERVER: ${{ secrets.BACKEND_FTP_SERVER }}
-      BACKEND_FTP_USER: ${{ secrets.BACKEND_FTP_USER }}
-      BACKEND_FTP_PASSWORD: ${{ secrets.BACKEND_FTP_PASSWORD }}
-      BACKEND_FTP_PATH: ${{ secrets.BACKEND_FTP_PATH }}
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: Setup .NET SDK 8
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: "8.0.x"
 
-      - name: Restore dependencies
-        run: dotnet restore
+      - name: Restore
+        run: dotnet restore backend/FeraPrompt.Api/FeraPrompt.Api.csproj
 
-      - name: Build project
-        run: dotnet build --configuration Release --no-restore
+      - name: Build
+        run: dotnet build backend/FeraPrompt.Api/FeraPrompt.Api.csproj --configuration Release --no-restore
 
-      - name: Publish build
-        run: dotnet publish -c Release -o publish
+      - name: Publish
+        run: dotnet publish backend/FeraPrompt.Api/FeraPrompt.Api.csproj --configuration Release --no-build --output ./publish
 
-      - name: Verify publish output
+      # ============= 1) Criar app_offline.htm =============
+      - name: Create app_offline.htm
+        shell: bash
         run: |
-          echo "=== Files in publish folder ==="
-          ls -la publish/
-          [ -f publish/FeraPrompt.Api.dll ] && echo "✓ FeraPrompt.Api.dll found" || echo "✗ FeraPrompt.Api.dll missing"
+          mkdir -p ./offline
+          TS="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          cat > ./offline/app_offline.htm << EOF
+          <!DOCTYPE html>
+          <html lang="pt-BR"><head><meta charset="utf-8">
+          <title>Atualizando...</title></head>
+          <body style="font-family:Arial;display:grid;place-items:center;height:100vh">
+            <div>
+              <h2>Estamos publicando uma atualização</h2>
+              <p>Tente novamente em instantes.</p>
+              <small>deploy: ${TS}</small>
+            </div>
+          </body></html>
+          EOF
 
-      # -------------------------------------------------------
-      # NOVO PASSO: Instalar cliente FTP leve (lftp)
-      # -------------------------------------------------------
-      - name: Install LFTP
-        run: sudo apt-get update && sudo apt-get install -y lftp
-
-      # -------------------------------------------------------
-      # NOVO PASSO: Colocar a aplicação offline para liberar o lock da DLL
-      # -------------------------------------------------------
-      - name: Stop App (Upload App_Offline.htm)
-        run: |
-          # Criar um arquivo HTML simples de manutenção
-          echo "<html><head><title>Updating</title></head><body style='font-family:sans-serif;text-align:center;padding-top:50px;'><h1>Sistema em Atualizacao</h1><p>Voltamos em instantes.</p></body></html>" > App_Offline.htm
-          
-          # Enviar o arquivo para a raiz do servidor via lftp
-          # Nota: 'set ssl:verify-certificate no' é necessário pois o SmarterASP geralmente usa certificados compartilhados ou não assinados para FTP direto
-          lftp -c "open -u ${{ env.BACKEND_FTP_USER }},${{ env.BACKEND_FTP_PASSWORD }} ${{ env.BACKEND_FTP_SERVER }}; set ssl:verify-certificate no; put -O ${{ env.BACKEND_FTP_PATH }} App_Offline.htm"
-          
-          # Esperar 10 segundos para garantir que o IIS detectou o arquivo e liberou o processo
-          echo "Waiting for IIS to release locks..."
-          sleep 10
-
-      # -------------------------------------------------------
-      # PASSO EXISTENTE: Deploy Principal
-      # -------------------------------------------------------
-      - name: Deploy to SmarterASP (Backend)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      # ============= 2) Colocar app_offline no servidor =============
+      - name: Put app_offline.htm
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
-          server: ${{ env.BACKEND_FTP_SERVER }}
-          username: ${{ env.BACKEND_FTP_USER }}
-          password: ${{ env.BACKEND_FTP_PASSWORD }}
-          local-dir: ./backend/FeraPrompt.Api/publish/
-          server-dir: ${{ env.BACKEND_FTP_PATH }}
-          dangerous-clean-slate: false
-          log-level: verbose
+          server: ${{ secrets.BACKEND_FTP_SERVER }}
+          username: ${{ secrets.BACKEND_FTP_USER }}
+          password: ${{ secrets.BACKEND_FTP_PASSWORD }}
+          local-dir: ./offline/
+          server-dir: ${{ secrets.BACKEND_FTP_PATH }}/
+          state-name: .ftp-deploy-sync-state.offline.json
+          log-level: standard
 
-      # -------------------------------------------------------
-      # NOVO PASSO: Remover App_Offline.htm para iniciar o site
-      # -------------------------------------------------------
-      - name: Start App (Remove App_Offline.htm)
-        if: always() # Executa mesmo se o deploy falhar, para não deixar o site fora do ar permanentemente
+      # Tempo para IIS desligar o app
+      - name: Wait IIS unload
+        run: sleep 30
+
+      # ============= 3) Deploy da aplicação publicada =============
+      - name: FTP Deploy backend publish
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.BACKEND_FTP_SERVER }}
+          username: ${{ secrets.BACKEND_FTP_USER }}
+          password: ${{ secrets.BACKEND_FTP_PASSWORD }}
+          local-dir: ./publish/
+          server-dir: ${{ secrets.BACKEND_FTP_PATH }}/
+          state-name: .ftp-deploy-sync-state.json
+          log-level: standard
+          exclude: |
+            **/*.pdb
+            **/*.xml
+            **/*.md
+
+      # ============= 4) Remover app_offline para subir o site =============
+      - name: Remove app_offline.htm
+        shell: bash
         run: |
-          lftp -c "open -u ${{ env.BACKEND_FTP_USER }},${{ env.BACKEND_FTP_PASSWORD }} ${{ env.BACKEND_FTP_SERVER }}; set ssl:verify-certificate no; rm ${{ env.BACKEND_FTP_PATH }}/App_Offline.htm"
-          echo "App_Offline.htm removed. Application should restart."
+          curl --silent --show-error --fail \
+           --user "${{ secrets.BACKEND_FTP_USER }}:${{ secrets.BACKEND_FTP_PASSWORD }}" \
+           --quote "DELE ${{ secrets.BACKEND_FTP_PATH }}/app_offline.htm" \
+           "ftp://${{ secrets.BACKEND_FTP_SERVER }}/" || true
