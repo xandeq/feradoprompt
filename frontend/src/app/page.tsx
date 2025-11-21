@@ -2,6 +2,7 @@
 
 import { apiRequest } from "@/lib/apiClient";
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 type Prompt = {
   id: number;
@@ -22,6 +23,14 @@ type ExecutePromptPayload = {
   promptId: number;
   input: string;
   model: string;
+};
+
+type PromptResponse = {
+  promptId: number;
+  input: string;
+  output: string;
+  modelUsed: string;
+  executedAt: string;
 };
 
 const createPromptPayload: CreatePromptPayload = {
@@ -45,7 +54,7 @@ async function createPromptExample() {
 }
 
 async function executePromptExample() {
-  return apiRequest<unknown>(
+  return apiRequest<PromptResponse>(
     "POST",
     "/api/Prompts/execute",
     executePromptPayload,
@@ -56,15 +65,27 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [isHtmlOutput, setIsHtmlOutput] = useState(false);
 
   const runExample = async (action: () => Promise<unknown>) => {
     setIsLoading(true);
     setResult("");
     setError("");
+    setIsHtmlOutput(false);
 
     try {
       const response = await action();
-      setResult(JSON.stringify(response, null, 2));
+
+      // Verifica se é a resposta de execução e tem output
+      if (typeof response === 'object' && response !== null && 'output' in response) {
+         const output = (response as PromptResponse).output;
+         setResult(output);
+         setIsHtmlOutput(true);
+      } else {
+         setResult(JSON.stringify(response, null, 2));
+         setIsHtmlOutput(false);
+      }
+
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -73,6 +94,17 @@ export default function Home() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (result) {
+      try {
+        await navigator.clipboard.writeText(result);
+        alert("Conteúdo copiado para a área de transferência!");
+      } catch (err) {
+        console.error("Falha ao copiar: ", err);
+      }
     }
   };
 
@@ -170,9 +202,20 @@ async function executePromptExample() {
         </section>
 
         <section className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <h2 className="text-2xl font-medium tracking-tight">
-            Resultado da requisição
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-medium tracking-tight">
+              Resultado da requisição
+            </h2>
+            {result && (
+              <button
+                onClick={handleCopy}
+                className="rounded-md bg-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+              >
+                Copiar código
+              </button>
+            )}
+          </div>
+
           {isLoading && (
             <p className="text-sm text-zinc-500">Executando requisição...</p>
           )}
@@ -182,9 +225,15 @@ async function executePromptExample() {
             </pre>
           )}
           {result && (
-            <pre className="overflow-x-auto rounded-xl bg-zinc-100 p-4 text-sm text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-              <code>{result}</code>
-            </pre>
+            <div className="overflow-x-auto rounded-xl bg-zinc-100 p-4 text-sm text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+              {isHtmlOutput ? (
+                <article className="prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown>{result}</ReactMarkdown>
+                </article>
+              ) : (
+                <pre><code>{result}</code></pre>
+              )}
+            </div>
           )}
           {!isLoading && !error && !result && (
             <p className="text-sm text-zinc-500">
