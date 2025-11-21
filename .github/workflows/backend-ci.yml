@@ -46,19 +46,33 @@ jobs:
         run: |
           echo "=== Files in publish folder ==="
           ls -la publish/
-          echo ""
-          echo "=== Checking for important files ==="
           [ -f publish/FeraPrompt.Api.dll ] && echo "✓ FeraPrompt.Api.dll found" || echo "✗ FeraPrompt.Api.dll missing"
-          [ -f publish/web.config ] && echo "✓ web.config found" || echo "✗ web.config missing"
-          [ -f publish/appsettings.json ] && echo "✓ appsettings.json found" || echo "✗ appsettings.json missing"
-          [ -f publish/appsettings.Production.json ] && echo "✓ appsettings.Production.json found" || echo "✗ appsettings.Production.json missing"
 
-      - name: Verify FTP secrets
+      # -------------------------------------------------------
+      # NOVO PASSO: Instalar cliente FTP leve (lftp)
+      # -------------------------------------------------------
+      - name: Install LFTP
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      # -------------------------------------------------------
+      # NOVO PASSO: Colocar a aplicação offline para liberar o lock da DLL
+      # -------------------------------------------------------
+      - name: Stop App (Upload App_Offline.htm)
         run: |
-          echo "FTP Server: ${{ env.BACKEND_FTP_SERVER }}"
-          echo "FTP User: ${{ env.BACKEND_FTP_USER }}"
-          echo "FTP Path: ${{ env.BACKEND_FTP_PATH }}"
+          # Criar um arquivo HTML simples de manutenção
+          echo "<html><head><title>Updating</title></head><body style='font-family:sans-serif;text-align:center;padding-top:50px;'><h1>Sistema em Atualizacao</h1><p>Voltamos em instantes.</p></body></html>" > App_Offline.htm
+          
+          # Enviar o arquivo para a raiz do servidor via lftp
+          # Nota: 'set ssl:verify-certificate no' é necessário pois o SmarterASP geralmente usa certificados compartilhados ou não assinados para FTP direto
+          lftp -c "open -u ${{ env.BACKEND_FTP_USER }},${{ env.BACKEND_FTP_PASSWORD }} ${{ env.BACKEND_FTP_SERVER }}; set ssl:verify-certificate no; put -O ${{ env.BACKEND_FTP_PATH }} App_Offline.htm"
+          
+          # Esperar 10 segundos para garantir que o IIS detectou o arquivo e liberou o processo
+          echo "Waiting for IIS to release locks..."
+          sleep 10
 
+      # -------------------------------------------------------
+      # PASSO EXISTENTE: Deploy Principal
+      # -------------------------------------------------------
       - name: Deploy to SmarterASP (Backend)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -69,3 +83,12 @@ jobs:
           server-dir: ${{ env.BACKEND_FTP_PATH }}
           dangerous-clean-slate: false
           log-level: verbose
+
+      # -------------------------------------------------------
+      # NOVO PASSO: Remover App_Offline.htm para iniciar o site
+      # -------------------------------------------------------
+      - name: Start App (Remove App_Offline.htm)
+        if: always() # Executa mesmo se o deploy falhar, para não deixar o site fora do ar permanentemente
+        run: |
+          lftp -c "open -u ${{ env.BACKEND_FTP_USER }},${{ env.BACKEND_FTP_PASSWORD }} ${{ env.BACKEND_FTP_SERVER }}; set ssl:verify-certificate no; rm ${{ env.BACKEND_FTP_PATH }}/App_Offline.htm"
+          echo "App_Offline.htm removed. Application should restart."
