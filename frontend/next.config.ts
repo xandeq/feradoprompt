@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     unoptimized: true // Necessário para export estático
   },
   env: {
-    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.feradoprompt.com.br'
   }
 };
 
