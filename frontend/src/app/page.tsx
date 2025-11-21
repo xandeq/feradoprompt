@@ -1,64 +1,195 @@
-import Image from "next/image";
+"use client";
+
+import { apiRequest } from "@/lib/apiClient";
+import { useState } from "react";
+
+type Prompt = {
+  id: number;
+  title: string;
+  body: string;
+  model: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type CreatePromptPayload = {
+  title: string;
+  body: string;
+  model: string;
+};
+
+type ExecutePromptPayload = {
+  promptId: number;
+  input: string;
+};
+
+const createPromptPayload: CreatePromptPayload = {
+  title: "Teste via Frontend",
+  body: "Corpo do prompt de teste",
+  model: "gpt-4",
+};
+
+const executePromptPayload: ExecutePromptPayload = {
+  promptId: 1,
+  input: "me dê um roteiro de viagem",
+};
+
+async function fetchPromptsExample() {
+  return apiRequest<Prompt[]>("GET", "/api/Prompts");
+}
+
+async function createPromptExample() {
+  return apiRequest<Prompt>("POST", "/api/Prompts", createPromptPayload);
+}
+
+async function executePromptExample() {
+  return apiRequest<unknown>(
+    "POST",
+    "/api/Prompts/execute",
+    executePromptPayload,
+  );
+}
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<string>("");
+  const [error, setError] = useState<string>("");
+
+  const runExample = async (action: () => Promise<unknown>) => {
+    setIsLoading(true);
+    setResult("");
+    setError("");
+
+    try {
+      const response = await action();
+      setResult(JSON.stringify(response, null, 2));
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Erro desconhecido ao executar a requisição.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-zinc-50 font-sans text-zinc-950 dark:bg-black dark:text-zinc-50">
+      <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-10 px-6 py-16">
+        <header className="space-y-4">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Testes rápidos com a API feradoprompt
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-lg text-zinc-600 dark:text-zinc-400">
+            Utilize a função utilitária <code>apiRequest</code> para validar os
+            endpoints públicos da API feradoprompt diretamente do frontend.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+        </header>
+
+        <section className="space-y-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="text-2xl font-medium tracking-tight">
+            Função utilitária
+          </h2>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            A função <code>apiRequest</code> usa{" "}
+            <code>fetch</code> com o cabeçalho{" "}
+            <code>Content-Type: application/json</code> e monta a URL final a
+            partir da variável de ambiente{" "}
+            <code>NEXT_PUBLIC_API_BASE_URL</code> (com fallback para{" "}
+            <code>https://api.feradoprompt.com.br</code>).
+          </p>
+          <pre className="overflow-x-auto rounded-xl bg-zinc-950 p-4 text-sm text-zinc-100">
+            <code>{`import { apiRequest } from "@/lib/apiClient";
+
+async function fetchPromptsExample() {
+  return apiRequest<Prompt[]>("GET", "/api/Prompts");
+}
+
+async function createPromptExample() {
+  return apiRequest<Prompt>("POST", "/api/Prompts", createPromptPayload);
+}
+
+async function executePromptExample() {
+  return apiRequest("POST", "/api/Prompts/execute", executePromptPayload);
+}`}</code>
+          </pre>
+        </section>
+
+        <section className="space-y-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="text-2xl font-medium tracking-tight">
+            Exemplos práticos
+          </h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => runExample(fetchPromptsExample)}
+              className="rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:pointer-events-none disabled:opacity-70 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              disabled={isLoading}
+            >
+              GET /api/Prompts
+            </button>
+            <button
+              type="button"
+              onClick={() => runExample(createPromptExample)}
+              className="rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:pointer-events-none disabled:opacity-70 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              disabled={isLoading}
+            >
+              POST /api/Prompts
+            </button>
+            <button
+              type="button"
+              onClick={() => runExample(executePromptExample)}
+              className="rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:pointer-events-none disabled:opacity-70 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              disabled={isLoading}
+            >
+              POST /api/Prompts/execute
+            </button>
+          </div>
+
+          <div className="space-y-4 text-sm">
+            <div>
+              <h3 className="mb-2 font-semibold uppercase tracking-wide text-zinc-500">
+                Body - POST /api/Prompts
+              </h3>
+              <pre className="overflow-x-auto rounded-xl bg-zinc-100 p-4 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+                <code>{JSON.stringify(createPromptPayload, null, 2)}</code>
+              </pre>
+            </div>
+            <div>
+              <h3 className="mb-2 font-semibold uppercase tracking-wide text-zinc-500">
+                Body - POST /api/Prompts/execute
+              </h3>
+              <pre className="overflow-x-auto rounded-xl bg-zinc-100 p-4 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+                <code>{JSON.stringify(executePromptPayload, null, 2)}</code>
+              </pre>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="text-2xl font-medium tracking-tight">
+            Resultado da requisição
+          </h2>
+          {isLoading && (
+            <p className="text-sm text-zinc-500">Executando requisição...</p>
+          )}
+          {error && (
+            <pre className="overflow-x-auto rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-700 dark:border-red-700 dark:bg-red-950 dark:text-red-200">
+              <code>{error}</code>
+            </pre>
+          )}
+          {result && (
+            <pre className="overflow-x-auto rounded-xl bg-zinc-100 p-4 text-sm text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+              <code>{result}</code>
+            </pre>
+          )}
+          {!isLoading && !error && !result && (
+            <p className="text-sm text-zinc-500">
+              Selecione uma das ações acima para visualizar a resposta.
+            </p>
+          )}
+        </section>
       </main>
     </div>
   );
