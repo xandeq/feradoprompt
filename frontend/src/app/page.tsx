@@ -21,6 +21,7 @@ type CreatePromptPayload = {
 type ExecutePromptPayload = {
   promptId: number;
   input: string;
+  model: string;
 };
 
 const createPromptPayload: CreatePromptPayload = {
@@ -32,6 +33,7 @@ const createPromptPayload: CreatePromptPayload = {
 const executePromptPayload: ExecutePromptPayload = {
   promptId: 1,
   input: "me dê um roteiro de viagem",
+  model: "gpt-4",
 };
 
 async function fetchPromptsExample() {
