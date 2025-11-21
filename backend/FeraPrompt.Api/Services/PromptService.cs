@@ -118,26 +118,44 @@ public class PromptService : IPromptService
                  throw new InvalidOperationException("O n8n retornou um corpo de resposta vazio.");
             }
 
-            N8nWebhookResponse? n8nResponse;
-            try
+            // Tenta deserializar como um dicionário genérico para inspecionar os campos
+            var jsonElement = JsonSerializer.Deserialize<JsonElement>(responseJson);
+            string output = string.Empty;
+
+            // Estratégia de fallback para encontrar o output
+            if (jsonElement.ValueKind == JsonValueKind.Object)
             {
-                var options = new JsonSerializerOptions
+                // 1. Tenta encontrar "output" ou "Output"
+                if (jsonElement.TryGetProperty("output", out var outputProp) ||
+                    jsonElement.TryGetProperty("Output", out outputProp))
                 {
-                    PropertyNameCaseInsensitive = true
-                };
-                n8nResponse = JsonSerializer.Deserialize<N8nWebhookResponse>(responseJson, options);
+                    output = outputProp.ToString();
+                }
+                // 2. Se não encontrar, tenta usar "optimized_prompt" (baseado no log de erro)
+                else if (jsonElement.TryGetProperty("optimized_prompt", out var optimizedProp))
+                {
+                    output = optimizedProp.ToString();
+                }
+                // 3. Se não, tenta serializar o objeto "analysis" se existir
+                else if (jsonElement.TryGetProperty("analysis", out var analysisProp))
+                {
+                    output = analysisProp.ToString();
+                }
+                // 4. Último caso: serializa o JSON inteiro recebido
+                else
+                {
+                    output = responseJson;
+                }
             }
-            catch (JsonException ex)
+            else
             {
-                _logger.LogError(ex, "Falha ao deserializar resposta do n8n. Conteúdo recebido: {ResponseContent}", responseJson);
-                throw new Exception($"A resposta do n8n não é um JSON válido. Conteúdo: {responseJson}", ex);
+                output = responseJson;
             }
 
-            if (n8nResponse == null || string.IsNullOrEmpty(n8nResponse.Output))
+            if (string.IsNullOrEmpty(output))
             {
-                // Tenta verificar se o n8n retornou um JSON genérico que não mapeou para o objeto esperado
-                 _logger.LogWarning("Resposta do n8n não contém o campo 'output'. Resposta completa: {ResponseJson}", responseJson);
-                throw new InvalidOperationException($"O n8n retornou sucesso, mas a resposta não contém o campo 'output' esperado. Recebido: {responseJson}");
+                 _logger.LogWarning("Não foi possível extrair um output válido. Resposta completa: {ResponseJson}", responseJson);
+                throw new InvalidOperationException($"O n8n retornou sucesso, mas não foi possível extrair o resultado. Recebido: {responseJson}");
             }
 
             // Salva no histórico
@@ -145,7 +163,7 @@ public class PromptService : IPromptService
             {
                 PromptId = model.PromptId,
                 Input = model.Input,
-                Output = n8nResponse.Output,
+                Output = output,
                 ModelUsed = model.Model,
                 ExecutedAt = DateTime.UtcNow
             };
@@ -160,7 +178,7 @@ public class PromptService : IPromptService
             {
                 PromptId = model.PromptId,
                 Input = model.Input,
-                Output = n8nResponse.Output,
+                Output = output,
                 ModelUsed = model.Model,
                 ExecutedAt = history.ExecutedAt
             };
@@ -234,10 +252,7 @@ public class PromptService : IPromptService
     }
 
     /// <summary>
-    /// Classe interna para deserializar resposta do n8n
+    /// Classe interna para deserializar resposta do n8n (Removida pois agora usamos JsonElement dinâmico)
     /// </summary>
-    private class N8nWebhookResponse
-    {
-        public string Output { get; set; } = string.Empty;
-    }
+    // private class N8nWebhookResponse ...
 }
