@@ -112,11 +112,32 @@ public class PromptService : IPromptService
 
             // Lê a resposta do n8n
             var responseJson = await response.Content.ReadAsStringAsync();
-            var n8nResponse = JsonSerializer.Deserialize<N8nWebhookResponse>(responseJson);
+
+            if (string.IsNullOrWhiteSpace(responseJson))
+            {
+                 throw new InvalidOperationException("O n8n retornou um corpo de resposta vazio.");
+            }
+
+            N8nWebhookResponse? n8nResponse;
+            try
+            {
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                n8nResponse = JsonSerializer.Deserialize<N8nWebhookResponse>(responseJson, options);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Falha ao deserializar resposta do n8n. Conteúdo recebido: {ResponseContent}", responseJson);
+                throw new Exception($"A resposta do n8n não é um JSON válido. Conteúdo: {responseJson}", ex);
+            }
 
             if (n8nResponse == null || string.IsNullOrEmpty(n8nResponse.Output))
             {
-                throw new InvalidOperationException("Resposta inválida do n8n");
+                // Tenta verificar se o n8n retornou um JSON genérico que não mapeou para o objeto esperado
+                 _logger.LogWarning("Resposta do n8n não contém o campo 'output'. Resposta completa: {ResponseJson}", responseJson);
+                throw new InvalidOperationException($"O n8n retornou sucesso, mas a resposta não contém o campo 'output' esperado. Recebido: {responseJson}");
             }
 
             // Salva no histórico

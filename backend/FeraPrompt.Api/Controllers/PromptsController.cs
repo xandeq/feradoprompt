@@ -117,8 +117,20 @@ public class PromptsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao executar prompt {PromptId}", model.PromptId);
+
+            // Verifica se a exception é de JSON inválido
+            if (ex is System.Text.Json.JsonException jsonEx)
+            {
+                 return StatusCode(StatusCodes.Status500InternalServerError,
+                    new {
+                        message = "Erro ao processar resposta do n8n",
+                        error = "O retorno do n8n não é um JSON válido ou está vazio.",
+                        technicalDetails = jsonEx.Message
+                    });
+            }
+
             return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "Erro ao executar prompt", error = ex.Message });
+                new { message = "Erro ao executar prompt", error = ex.Message, stackTrace = ex.StackTrace });
         }
     }
 
