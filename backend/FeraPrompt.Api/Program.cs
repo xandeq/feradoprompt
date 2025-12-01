@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
+using PuppeteerSharp;
+using PuppeteerSharp.BrowserData;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,6 +44,11 @@ if (builder.Environment.IsDevelopment())
     Console.WriteLine($"[DEBUG] .env.local carregado de: {envPath}");
     Console.WriteLine($"[DEBUG] DB_SERVER configurado: {!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DB_SERVER"))}");
 }
+
+// =============================
+// PrÃ©-baixar Chromium para o PuppeteerSharp
+// =============================
+await EnsureChromiumAsync(builder.Environment);
 
 // =============================
 // 2. Configurar Serviï¿½os
@@ -130,13 +138,13 @@ builder.Services.AddSwaggerGen(options =>
 // =============================
 var app = builder.Build();
 
-// Swagger HABILITADO EM TODOS OS AMBIENTES (incluindo produção)
+// Swagger HABILITADO EM TODOS OS AMBIENTES (incluindo produï¿½ï¿½o)
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "Fera do Prompt API v1");
-    options.RoutePrefix = "swagger"; // Acessível em /swagger
-    options.DocumentTitle = "Fera do Prompt API - Documentação";
+    options.RoutePrefix = "swagger"; // Acessï¿½vel em /swagger
+    options.DocumentTitle = "Fera do Prompt API - Documentaï¿½ï¿½o";
     options.DisplayRequestDuration();
     options.EnableTryItOutByDefault();
     options.EnableDeepLinking();
@@ -162,3 +170,21 @@ app.Logger.LogInformation("?? Fera do Prompt API iniciada");
 app.Logger.LogInformation("Ambiente: {Environment}", app.Environment.EnvironmentName);
 
 app.Run();
+
+static async Task EnsureChromiumAsync(IHostEnvironment environment)
+{
+    var chromiumPath = Path.Combine(environment.ContentRootPath, ".local-chromium");
+    var browserFetcher = new BrowserFetcher(new BrowserFetcherOptions
+    {
+        Browser = SupportedBrowser.Chrome,
+        Path = chromiumPath
+    });
+
+    var installedBrowser = await browserFetcher.DownloadAsync();
+    var executablePath = installedBrowser.GetExecutablePath();
+
+    if (string.IsNullOrWhiteSpace(executablePath))
+    {
+        throw new InvalidOperationException("Falha ao localizar o executÃ¡vel do Chromium baixado pelo PuppeteerSharp.");
+    }
+}
