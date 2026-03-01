@@ -41,6 +41,13 @@ jobs:
       - name: Publish
         run: dotnet publish backend/FeraPrompt.Api/FeraPrompt.Api.csproj --configuration Release --no-build --output ./publish
 
+      - name: Inject OpenRouter API key into web.config
+        shell: bash
+        run: |
+          if [ -f ./publish/web.config ]; then
+            sed -i "s|__OPENROUTER_API_KEY__|${{ secrets.OPENROUTER_API_KEY }}|g" ./publish/web.config
+          fi
+
       # ============= 1) Criar app_offline.htm =============
       - name: Create app_offline.htm
         shell: bash
