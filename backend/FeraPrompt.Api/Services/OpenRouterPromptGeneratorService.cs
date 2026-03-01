@@ -419,22 +419,46 @@ public class OpenRouterPromptGeneratorService : IPromptGeneratorService
 
         // Remove spaces and invisible unicode chars that may come from copy/paste.
         value = Regex.Replace(value, @"\s+", string.Empty);
+
+        // Some users paste only the token body without the OpenRouter prefix.
+        // If it looks like a raw hex token, restore the expected prefix.
+        if (!value.StartsWith("sk-or-v1-", StringComparison.OrdinalIgnoreCase) &&
+            Regex.IsMatch(value, "^[a-fA-F0-9]{64}$"))
+        {
+            value = $"sk-or-v1-{value}";
+        }
+
         return value;
     }
 
     private string ResolveApiKey(string? requestApiKey)
     {
         var fromRequest = NormalizeApiKey(requestApiKey);
-        if (!string.IsNullOrWhiteSpace(fromRequest))
+        if (!string.IsNullOrWhiteSpace(fromRequest) && IsLikelyOpenRouterApiKey(fromRequest))
         {
             return fromRequest;
         }
 
         var fromConfig = _configuration["OpenRouter:ApiKey"];
         var fromEnvironment = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
-        return NormalizeApiKey(fromConfig) is var normalizedConfig && !string.IsNullOrWhiteSpace(normalizedConfig)
-            ? normalizedConfig
-            : NormalizeApiKey(fromEnvironment);
+        var normalizedConfig = NormalizeApiKey(fromConfig);
+        if (!string.IsNullOrWhiteSpace(normalizedConfig) && IsLikelyOpenRouterApiKey(normalizedConfig))
+        {
+            return normalizedConfig;
+        }
+
+        var normalizedEnvironment = NormalizeApiKey(fromEnvironment);
+        if (!string.IsNullOrWhiteSpace(normalizedEnvironment) && IsLikelyOpenRouterApiKey(normalizedEnvironment))
+        {
+            return normalizedEnvironment;
+        }
+
+        return string.Empty;
+    }
+
+    private static bool IsLikelyOpenRouterApiKey(string value)
+    {
+        return value.StartsWith("sk-or-v1-", StringComparison.OrdinalIgnoreCase);
     }
 
     private string GetBaseUrl()
