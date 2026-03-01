@@ -41,6 +41,11 @@ jobs:
       - name: Publish
         run: dotnet publish backend/FeraPrompt.Api/FeraPrompt.Api.csproj --configuration Release --no-build --output ./publish
 
+      - name: Prepare web.config for IIS
+        shell: bash
+        run: |
+          cp backend/FeraPrompt.Api/web.config ./publish/web.config
+
       - name: Inject OpenRouter API key into web.config
         shell: bash
         run: |

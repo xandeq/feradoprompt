@@ -292,7 +292,7 @@ public class OpenRouterPromptGeneratorService : IPromptGeneratorService
             httpClient.Timeout = TimeSpan.FromSeconds(30);
             var modelsUrl = $"{GetBaseUrl().TrimEnd('/')}/models";
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, modelsUrl);
-            requestMessage.Headers.TryAddWithoutValidation("Authorization", $"Bearer {effectiveApiKey}");
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", effectiveApiKey);
             var response = await httpClient.SendAsync(requestMessage);
             if (!response.IsSuccessStatusCode)
             {
@@ -379,7 +379,7 @@ public class OpenRouterPromptGeneratorService : IPromptGeneratorService
         {
             Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json")
         };
-        requestMessage.Headers.TryAddWithoutValidation("Authorization", $"Bearer {effectiveApiKey}");
+        requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", effectiveApiKey);
         requestMessage.Headers.TryAddWithoutValidation("HTTP-Referer", _configuration["OpenRouter:Referer"] ?? "https://feradoprompt.local");
         requestMessage.Headers.TryAddWithoutValidation("X-Title", _configuration["OpenRouter:AppTitle"] ?? "Fera do Prompt");
         var response = await httpClient.SendAsync(requestMessage);
