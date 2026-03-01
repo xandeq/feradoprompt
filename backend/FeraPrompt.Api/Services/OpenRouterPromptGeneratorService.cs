@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
 using System.Text;
 using System.Text.Json;
 using FeraPrompt.Api.ViewModels;
@@ -289,10 +290,10 @@ public class OpenRouterPromptGeneratorService : IPromptGeneratorService
         {
             using var httpClient = _httpClientFactory.CreateClient();
             httpClient.Timeout = TimeSpan.FromSeconds(30);
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectiveApiKey);
-
             var modelsUrl = $"{GetBaseUrl().TrimEnd('/')}/models";
-            var response = await httpClient.GetAsync(modelsUrl);
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, modelsUrl);
+            requestMessage.Headers.TryAddWithoutValidation("Authorization", $"Bearer {effectiveApiKey}");
+            var response = await httpClient.SendAsync(requestMessage);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Falha ao buscar modelos OpenRouter. Status: {Status}", response.StatusCode);
@@ -359,9 +360,6 @@ public class OpenRouterPromptGeneratorService : IPromptGeneratorService
 
         using var httpClient = _httpClientFactory.CreateClient();
         httpClient.Timeout = TimeSpan.FromSeconds(90);
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectiveApiKey);
-        httpClient.DefaultRequestHeaders.Add("HTTP-Referer", _configuration["OpenRouter:Referer"] ?? "https://feradoprompt.local");
-        httpClient.DefaultRequestHeaders.Add("X-Title", _configuration["OpenRouter:AppTitle"] ?? "Fera do Prompt");
 
         var payload = new
         {
@@ -376,9 +374,15 @@ public class OpenRouterPromptGeneratorService : IPromptGeneratorService
         };
 
         var jsonPayload = JsonSerializer.Serialize(payload);
-        using var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
         var completionsUrl = $"{GetBaseUrl().TrimEnd('/')}/chat/completions";
-        var response = await httpClient.PostAsync(completionsUrl, content);
+        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, completionsUrl)
+        {
+            Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json")
+        };
+        requestMessage.Headers.TryAddWithoutValidation("Authorization", $"Bearer {effectiveApiKey}");
+        requestMessage.Headers.TryAddWithoutValidation("HTTP-Referer", _configuration["OpenRouter:Referer"] ?? "https://feradoprompt.local");
+        requestMessage.Headers.TryAddWithoutValidation("X-Title", _configuration["OpenRouter:AppTitle"] ?? "Fera do Prompt");
+        var response = await httpClient.SendAsync(requestMessage);
 
         var responseBody = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
@@ -400,11 +404,37 @@ public class OpenRouterPromptGeneratorService : IPromptGeneratorService
         };
     }
 
+    private static string NormalizeApiKey(string? rawApiKey)
+    {
+        if (string.IsNullOrWhiteSpace(rawApiKey))
+        {
+            return string.Empty;
+        }
+
+        var value = rawApiKey.Trim().Trim('"').Trim('\'');
+        if (value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            value = value.Substring("Bearer ".Length).Trim();
+        }
+
+        // Remove spaces and invisible unicode chars that may come from copy/paste.
+        value = Regex.Replace(value, @"\s+", string.Empty);
+        return value;
+    }
+
     private string ResolveApiKey(string? requestApiKey)
     {
-        return !string.IsNullOrWhiteSpace(requestApiKey)
-            ? requestApiKey.Trim()
-            : (_configuration["OpenRouter:ApiKey"] ?? Environment.GetEnvironmentVariable("OPENROUTER_API_KEY") ?? string.Empty);
+        var fromRequest = NormalizeApiKey(requestApiKey);
+        if (!string.IsNullOrWhiteSpace(fromRequest))
+        {
+            return fromRequest;
+        }
+
+        var fromConfig = _configuration["OpenRouter:ApiKey"];
+        var fromEnvironment = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
+        return NormalizeApiKey(fromConfig) is var normalizedConfig && !string.IsNullOrWhiteSpace(normalizedConfig)
+            ? normalizedConfig
+            : NormalizeApiKey(fromEnvironment);
     }
 
     private string GetBaseUrl()

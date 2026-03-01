@@ -50,6 +50,14 @@ const PURPOSES: PurposeOption[] = [
 
 const API_KEY_STORAGE = "feradoprompt_openrouter_api_key";
 
+function normalizeApiKey(raw: string): string {
+  let value = raw.trim().replace(/^["']|["']$/g, "");
+  if (value.toLowerCase().startsWith("bearer ")) {
+    value = value.slice(7).trim();
+  }
+  return value.replace(/\s+/g, "");
+}
+
 export default function Home() {
   const [apiKey, setApiKey] = useState("");
   const [purpose, setPurpose] = useState(PURPOSES[0].value);
@@ -149,7 +157,7 @@ export default function Home() {
         style: style || undefined,
         duration: duration || undefined,
         aspectRatio: aspectRatio || undefined,
-        apiKey: apiKey || undefined
+        apiKey: apiKey ? normalizeApiKey(apiKey) : undefined
       };
 
       const response = await apiRequest<GenerateResponse>(
