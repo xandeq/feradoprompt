@@ -24,3 +24,10 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Native select menus can ignore Tailwind text colors; force readable option contrast. */
+select option,
+select optgroup {
+  color: #111827;
+  background-color: #ffffff;
+}
