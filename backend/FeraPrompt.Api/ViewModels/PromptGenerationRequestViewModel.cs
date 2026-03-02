@@ -33,4 +33,10 @@ public class PromptGenerationRequestViewModel
 
     [MaxLength(500)]
     public string? ApiKey { get; set; }
+
+    [MaxLength(120)]
+    public string? ClientSessionId { get; set; }
+
+    [MaxLength(64)]
+    public string? ParentGenerationId { get; set; }
 }

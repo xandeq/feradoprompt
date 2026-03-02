@@ -1,10 +1,10 @@
-using Microsoft.EntityFrameworkCore;
+ï»¿using Microsoft.EntityFrameworkCore;
 using FeraPrompt.Api.Models;
 
 namespace FeraPrompt.Api.Data;
 
 /// <summary>
-/// Contexto do banco de dados do sistema Fera do Prompt
+/// Database context for Fera do Prompt.
 /// </summary>
 public class ApplicationDbContext : DbContext
 {
@@ -13,19 +13,19 @@ public class ApplicationDbContext : DbContext
     {
     }
 
-    // DbSets
     public DbSet<Prompt> Prompts => Set<Prompt>();
     public DbSet<PromptHistory> PromptHistories => Set<PromptHistory>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<PromptGenerationRecord> PromptGenerationRecords => Set<PromptGenerationRecord>();
+    public DbSet<ModelPerformanceStat> ModelPerformanceStats => Set<ModelPerformanceStat>();
+    public DbSet<DailyQuotaUsage> DailyQuotaUsages => Set<DailyQuotaUsage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Aplicar configurações de assembly (escalabilidade futura)
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
-        // Configuração da entidade Prompt
         modelBuilder.Entity<Prompt>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -48,18 +48,15 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.CreatedBy)
                 .HasMaxLength(100);
 
-            // Relacionamento 1:N com PromptHistory
             entity.HasMany(e => e.PromptHistories)
                 .WithOne(ph => ph.Prompt)
                 .HasForeignKey(ph => ph.PromptId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Índices para performance
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.Model);
         });
 
-        // Configuração da entidade PromptHistory
         modelBuilder.Entity<PromptHistory>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -78,16 +75,13 @@ public class ApplicationDbContext : DbContext
                 .IsRequired()
                 .HasDefaultValueSql("GETUTCDATE()");
 
-            // FK já configurada no relacionamento de Prompt
             entity.Property(e => e.PromptId)
                 .IsRequired();
 
-            // Índices para performance
             entity.HasIndex(e => e.PromptId);
             entity.HasIndex(e => e.ExecutedAt);
         });
 
-        // Configuração da entidade User
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -104,12 +98,44 @@ public class ApplicationDbContext : DbContext
                 .IsRequired()
                 .HasDefaultValueSql("GETUTCDATE()");
 
-            // Índices únicos para Username e Email
             entity.HasIndex(e => e.Username)
                 .IsUnique();
 
             entity.HasIndex(e => e.Email)
                 .IsUnique();
+        });
+
+        modelBuilder.Entity<PromptGenerationRecord>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.PublicId).IsUnique();
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.ClientSessionId);
+            entity.HasIndex(e => new { e.ParentRecordId, e.Version });
+            entity.Property(e => e.PublicId).HasDefaultValueSql("NEWID()");
+            entity.Property(e => e.CreatedAt)
+                .IsRequired()
+                .HasDefaultValueSql("GETUTCDATE()");
+        });
+
+        modelBuilder.Entity<ModelPerformanceStat>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.Purpose, e.ModelId }).IsUnique();
+            entity.HasIndex(e => e.LastUsedAt);
+            entity.Property(e => e.LastUsedAt)
+                .IsRequired()
+                .HasDefaultValueSql("GETUTCDATE()");
+        });
+
+        modelBuilder.Entity<DailyQuotaUsage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.DateUtc, e.IpAddress }).IsUnique();
+            entity.HasIndex(e => e.UpdatedAt);
+            entity.Property(e => e.UpdatedAt)
+                .IsRequired()
+                .HasDefaultValueSql("GETUTCDATE()");
         });
     }
 }

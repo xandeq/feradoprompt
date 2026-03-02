@@ -36,6 +36,7 @@ public static class ServiceExtensions
         // This service does not require DB and should always be available.
         services.AddScoped<IPromptGeneratorService, OpenRouterPromptGeneratorService>();
         services.AddHttpClient();
+        services.AddHttpContextAccessor();
 
         return services;
     }

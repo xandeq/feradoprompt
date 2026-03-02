@@ -158,6 +158,11 @@ app.UseHttpsRedirection();
 // CORS deve vir antes de Authorization
 app.UseCors("AllowFrontend");
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 // Rate Limiting
 app.UseRateLimiter();
 
