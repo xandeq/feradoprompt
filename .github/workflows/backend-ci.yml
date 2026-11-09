@@ -1,4 +1,4 @@
-name: Backend - Build & FTP Deploy (.NET 8)
+name: Backend - Build & FTP Deploy (.NET 10)
 
 on:
   push:
@@ -27,10 +27,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET SDK 8
+      - name: Setup .NET SDK 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "10.0.x"
 
       - name: Restore
         run: dotnet restore backend/FeraPrompt.Api/FeraPrompt.Api.csproj
@@ -39,12 +39,20 @@ jobs:
         run: dotnet build backend/FeraPrompt.Api/FeraPrompt.Api.csproj --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish backend/FeraPrompt.Api/FeraPrompt.Api.csproj --configuration Release --no-build --output ./publish
+        run: dotnet publish backend/FeraPrompt.Api/FeraPrompt.Api.csproj --configuration Release -r win-x86 --self-contained true --output ./publish
 
       - name: Prepare web.config for IIS
         shell: bash
         run: |
           cp backend/FeraPrompt.Api/web.config ./publish/web.config
+
+      - name: Inject DB password into web.config
+        shell: bash
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          test -n "$DB_PASSWORD" || { echo "secret DB_PASSWORD vazio" >&2; exit 1; }
+          perl -pi -e 's/__DB_PASSWORD__/$ENV{DB_PASSWORD}/g' ./publish/web.config
 
       - name: Inject OpenRouter API key into web.config
         shell: bash
